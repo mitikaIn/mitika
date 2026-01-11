@@ -65,13 +65,18 @@ function log(level: Level, domain: string, message: string) {
   while (LOGS.length > MAXIMUM_LOGS) LOGS.shift();
 }
 
+import { useToast } from "@/utils/toast";
+
 export function useLogger(domain: string): Logger {
   return {
     f,
     debug: (message: string) => log(Level.Debug, domain, message),
     info: (message: string) => log(Level.Info, domain, message),
     warn: (message: string) => log(Level.Warn, domain, message),
-    error: (message: string) => log(Level.Error, domain, message),
+    error: (message: string) => {
+      log(Level.Error, domain, message);
+      useToast().show(format(domain, message), "error");
+    },
   };
 }
 

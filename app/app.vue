@@ -1,6 +1,7 @@
 <template>
   <div class="flex h-dvh flex-col">
     <NuxtPage class="grow" />
+    <Toast />
   </div>
 </template>
 <script setup lang="ts">
