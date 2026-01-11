@@ -6,10 +6,9 @@
         class="input w-full"
         :placeholder="$t('Name of the note')"
       />
-      <textarea
+      <TextEditor
         v-model="description"
-        class="textarea w-full"
-        :placeholder="$t('Description of the note')"
+        class="w-full"
       />
     </div>
     <div class="modal-action">

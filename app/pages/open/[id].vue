@@ -125,7 +125,7 @@
                 </NuxtLink>
               </li>
               <li>
-                <button @click="window.open(Constants.HELP, '_blank')">
+                <button @click="onHelpClick">
                   {{ $t("Help") }}
                 </button>
               </li>
@@ -149,19 +149,28 @@
         class="object-scale-down"
       />
     </figure>
-    <EbookViewer
-      v-if="ebook && book.openEbook"
-      class="grow"
-      :ebook="ebook"
-      :focus="book.focus"
-      @metadata="onMetadata"
-    />
-    <AudiobookPlayer
-      v-if="audiobook && book.openAudiobook"
-      :audiobook="audiobook"
-      :focus="book.focus"
-      @metadata="onMetadata"
-    />
+    <Suspense>
+      <template #default>
+        <div class="flex flex-col gap-4 grow">
+           <EbookViewer
+              v-if="ebook && book.openEbook"
+              class="grow"
+              :ebook="ebook"
+              :focus="book.focus"
+              @metadata="onMetadata"
+            />
+            <AudiobookPlayer
+              v-if="audiobook && book.openAudiobook"
+              :audiobook="audiobook"
+              :focus="book.focus"
+              @metadata="onMetadata"
+            />
+        </div>
+      </template>
+      <template #fallback>
+        <Loading :text="$t('Opening book...')" />
+      </template>
+    </Suspense>
     <AboutDialog ref="aboutDialog" />
     <ItemsDialog
       ref="itemsDialog"
@@ -201,6 +210,10 @@ const coverUrl: ComputedRef<string | null> = computed((oldCoverUrl) => {
 function onFocusClick() {
   debug(`Changing to focus: ${!book.value.focus}`);
   book.value.focus = !book.value.focus;
+}
+
+function onHelpClick() {
+  window.open(Constants.HELP, "_blank");
 }
 
 async function onOpenItem(item: Item, forceOpen: boolean) {

@@ -31,10 +31,10 @@
     >
       <div class="collapse-content flex flex-col gap-4">
         <div class="join flex flex-row items-center justify-center gap-4">
-          <button class="join-item btn btn-ghost">
+          <button class="join-item btn btn-ghost" @click="onRewindClick">
             <RewindIcon class="size-4" />
           </button>
-          <button class="join-item btn btn-ghost">
+          <button class="join-item btn btn-ghost" @click="onSkipBackClick">
             <SkipBackIcon class="size-4" />
           </button>
           <label class="join-item swap swap-rotate btn btn-ghost">
@@ -46,10 +46,10 @@
             <PauseIcon class="swap-on size-4" />
             <PlayIcon class="swap-off size-4" />
           </label>
-          <button class="join-item btn btn-ghost">
+          <button class="join-item btn btn-ghost" @click="onSkipForwardClick">
             <SkipForwardIcon class="size-4" />
           </button>
-          <button class="join-item btn btn-ghost">
+          <button class="join-item btn btn-ghost" @click="onFastForwardClick">
             <FastForwardIcon class="size-4" />
           </button>
         </div>
@@ -319,6 +319,31 @@ async function open(audiobook: Audiobook) {
   window.setTimeout(async () => emit("metadata", await backend!.getMetadata()));
 }
 
+async function onRewindClick() {
+  debug("Rewinding 10s");
+  const newPos = Math.max(audiobook.position.value - 10, 0);
+  await backend!.setPosition(newPos);
+  // position update will come from backend callback
+}
+
+async function onFastForwardClick() {
+  debug("Fast forwarding 10s");
+  const newPos = Math.min(audiobook.position.value + 10, audiobook.length);
+  await backend!.setPosition(newPos);
+}
+
+async function onSkipBackClick() {
+  debug("Skipping back 30s");
+  const newPos = Math.max(audiobook.position.value - 30, 0);
+  await backend!.setPosition(newPos);
+}
+
+async function onSkipForwardClick() {
+  debug("Skipping forward 30s");
+  const newPos = Math.min(audiobook.position.value + 30, audiobook.length);
+  await backend!.setPosition(newPos);
+}
+
 async function close(audiobook: Audiobook) {
   debug(f`Closing: ${audiobook}`);
   playing.value = false;
@@ -333,6 +358,9 @@ function queryPositionName(position: AudiobookPosition): string {
 
 provide(QUERY_POSITION_NAME, queryPositionName);
 
+// Initial open for Suspense support
+await open(audiobook);
+
 watch(
   () => audiobook,
   async (newAudiobook, oldAudiobook) => {
@@ -341,7 +369,6 @@ watch(
     }
     await open(newAudiobook);
   },
-  { immediate: true },
 );
 
 onUnmounted(async () => {

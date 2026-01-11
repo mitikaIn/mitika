@@ -9,10 +9,10 @@
         &nbsp;
         {{ queryPositionName!(note.position) }}
       </button>
-      <textarea
-        v-model="note.description"
-        class="textarea list-col-wrap col-start-1 col-end-4 max-h-[25vh] w-full"
-        readonly="true"
+      <TextEditor
+        :model-value="note.description"
+        :editable="false"
+        class="list-col-wrap col-start-1 col-end-4 w-full"
       />
       <button
         class="btn btn-ghost hidden @lg:flex"
@@ -53,10 +53,9 @@
           class="input w-full"
           :placeholder="$t('Name of the note')"
         />
-        <textarea
+        <TextEditor
           v-model="description"
-          class="textarea max-h-[25vh] w-full"
-          :placeholder="$t('Description of the note')"
+          class="w-full"
         />
         <div class="flex flex-col justify-end gap-2 @lg:flex-row">
           <button

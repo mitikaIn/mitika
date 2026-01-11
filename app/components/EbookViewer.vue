@@ -312,6 +312,7 @@ import {
   type EbookPosition,
 } from "@/models";
 import { useSource } from "@/sources";
+import Hammer from "hammerjs";
 
 const { f, debug } = useLogger("ebookViewer");
 
@@ -404,13 +405,13 @@ async function onScaleChange(scale: number, resizePolicy: EbookResizePolicy) {
     let height = 0;
 
     if (startIndex.value >= 0) {
-      width += pages.value[startIndex.value].width;
-      height = Math.max(pages.value[endIndex.value].height, height);
+      width += pages.value[startIndex.value]?.width ?? 0;
+      height = Math.max(pages.value[endIndex.value]?.height ?? 0, height);
     }
 
     if (ebook.layout != EbookLayout.Single && endIndex.value < pages.value.length) {
-      width += pages.value[endIndex.value].width;
-      height = Math.max(pages.value[endIndex.value].height, height);
+      width += pages.value[endIndex.value]?.width ?? 0;
+      height = Math.max(pages.value[endIndex.value]?.height ?? 0, height);
     }
 
     const wScale = container.value.clientWidth / width;
@@ -537,16 +538,16 @@ function getPageProperties(index: number) {
     height = 0;
     transparent = true;
   } else if (index < 0) {
-    width = pages.value[0].width;
-    height = pages.value[0].height;
+    width = pages.value[0]!.width;
+    height = pages.value[0]!.height;
     transparent = true;
   } else if (index >= pages.value.length) {
-    width = pages.value[pages.value.length - 1].width;
-    height = pages.value[pages.value.length - 1].height;
+    width = pages.value[pages.value.length - 1]!.width;
+    height = pages.value[pages.value.length - 1]!.height;
     transparent = true;
   } else {
-    width = pages.value[index].width;
-    height = pages.value[index].height;
+    width = pages.value[index]!.width;
+    height = pages.value[index]!.height;
     transparent = false;
   }
 
@@ -709,10 +710,13 @@ async function close(ebook: Ebook) {
 }
 
 function queryPositionName(position: EbookPosition): string {
-  return pages.value[position.value].label;
+  return pages.value[position.value]?.label ?? "";
 }
 
 provide(QUERY_POSITION_NAME, queryPositionName);
+
+// Initial open for Suspense support
+await open(ebook);
 
 watch(
   () => ebook,
@@ -720,17 +724,50 @@ watch(
     if (oldEbook) await close(oldEbook);
     await open(newEbook);
   },
-  { immediate: true },
 );
 
+let hammer: HammerManager | null = null;
+let pinchStartScale = 1;
+
 watch(container, () => {
-  if (container.value) observer.observe(container.value!);
-  else observer.disconnect();
+  if (container.value) {
+    observer.observe(container.value!);
+    
+    if (hammer) hammer.destroy();
+    hammer = new Hammer(container.value);
+    
+    hammer.get('pinch').set({ enable: true });
+    hammer.on('pinchstart', () => {
+        pinchStartScale = ebook.scale;
+    });
+    hammer.on('pinch', (e) => {
+        const newScale = pinchStartScale * e.scale;
+        // Optimization: Debounce or directly set? 
+        // onScaleChange is async and heavy (loadImageData).
+        // Maybe we need a lighter weight update or just throttle it?
+        // EbookViewer architecture seems to reload image on scale change.
+        // For now, let's call it but maybe checking if it's busy?
+        // Or simply throttling it.
+        // Assuming onScaleChange handles it reasonably or we accept some lag.
+        onScaleChange(newScale, EbookResizePolicy.None);
+    });
+
+    hammer.on('swipeleft', onNextClick);
+    hammer.on('swiperight', onPreviousClick);
+
+  } else {
+    observer.disconnect();
+    if (hammer) {
+        hammer.destroy();
+        hammer = null;
+    }
+  }
 });
 
 onMounted(() => {});
 
 onUnmounted(async () => {
+  if (hammer) hammer.destroy();
   await close(ebook);
 });
 </script>
