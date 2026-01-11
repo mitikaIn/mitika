@@ -737,6 +737,7 @@ watch(container, () => {
     hammer = new Hammer(container.value);
     
     hammer.get('pinch').set({ enable: true });
+    hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
     hammer.on('pinchstart', () => {
         pinchStartScale = ebook.scale;
     });

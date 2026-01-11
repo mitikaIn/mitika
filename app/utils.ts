@@ -10,8 +10,9 @@ export function getBaseName(path: string): string {
 export function splitBaseName(baseName: string): { name: string; extension: string } {
   const splits = baseName.split(".");
   if (splits.length == 0) throw new Error(`Invalid base name: ${baseName}`);
-  const name = splits[0];
-  const extension = splits[splits.length - 1];
+  if (splits.length == 1) return { name: splits[0], extension: "" };
+  const extension = splits.pop()!;
+  const name = splits.join(".");
   return { name, extension };
 }
 

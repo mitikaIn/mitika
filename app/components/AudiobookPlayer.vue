@@ -229,7 +229,10 @@ const outlines: Ref<AudiobookOutline[]> = ref([]);
 const playing = ref(false);
 let backend: AudiobookBackend | null = null;
 
-const hoursLength = computed(() => Math.floor(Math.log10(audiobook.length / 3600) + 1));
+const hoursLength = computed(() => {
+  if (audiobook.length < 3600) return 0;
+  return Math.floor(Math.log10(audiobook.length / 3600) + 1);
+});
 
 const addNoteDialog = useTemplateRef("addNoteDialog");
 const marksDialog = useTemplateRef("marksDialog");
@@ -311,9 +314,9 @@ async function open(audiobook: Audiobook) {
   });
 
   audiobook.length = await backend!.getLength();
-  backend!.setPosition(audiobook.position.value);
-  backend!.setRate(audiobook.rate);
-  backend!.setVolume(audiobook.volume);
+  await backend!.setPosition(audiobook.position.value);
+  await backend!.setRate(audiobook.rate);
+  await backend!.setVolume(audiobook.volume);
 
   window.setTimeout(async () => (outlines.value = await backend!.getOutlines()));
   window.setTimeout(async () => emit("metadata", await backend!.getMetadata()));

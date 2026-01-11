@@ -12,8 +12,8 @@ export function useAudiobookBackend(type: string): AudiobookBackend {
 
 export function useEbookBackend(type: string): EbookBackend {
   if (type == "application/pdf") return new MuPdf();
-  if (type == "application/epub+zip") return new MuPdf();
-  else throw new Error(`Unknown ebook type: ${type}`);
+  else if (type == "application/epub+zip") return new MuPdf();
+  throw new Error(`Unknown ebook type: ${type}`);
 }
 
 export {
