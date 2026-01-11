@@ -114,7 +114,7 @@
               </NuxtLink>
             </li>
             <li>
-              <button>
+              <button @click="window.open(Constants.HELP, '_blank')">
                 {{ $t("Help") }}
               </button>
             </li>

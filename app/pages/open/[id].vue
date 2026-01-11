@@ -125,7 +125,7 @@
                 </NuxtLink>
               </li>
               <li>
-                <button>
+                <button @click="window.open(Constants.HELP, '_blank')">
                   {{ $t("Help") }}
                 </button>
               </li>
@@ -145,7 +145,7 @@
     >
       <img
         :alt="book.name"
-        :src="coverUrl ? coverUrl : './fallback.webp'"
+        :src="coverUrl ?? '/fallback.webp'"
         class="object-scale-down"
       />
     </figure>
@@ -236,6 +236,20 @@ async function onMetadata(metadata: Metadata) {
     cover.value = metadata.cover;
   }
 }
+
+// Initialization logic
+const allItems = await database.getItems(book.value.id);
+const lastAudiobook =
+  allItems.find((i) => i.id === book.value.lastAudiobookId && i.type === ItemType.Audiobook) ||
+  allItems.find((i) => i.type === ItemType.Audiobook);
+
+if (lastAudiobook) await onOpenItem(lastAudiobook, false);
+
+const lastEbook =
+  allItems.find((i) => i.id === book.value.lastEbookId && i.type === ItemType.Ebook) ||
+  allItems.find((i) => i.type === ItemType.Ebook);
+
+if (lastEbook) await onOpenItem(lastEbook, false);
 
 onUnmounted(async () => {
   book.value.lastOpened = new Date();

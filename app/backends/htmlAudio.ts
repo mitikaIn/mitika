@@ -26,6 +26,10 @@ export class HtmlAudio implements AudiobookBackend {
   }
 
   async open(blob: Blob, type: string, options: AudiobookBackendOptions) {
+    if (this.audio) {
+      URL.revokeObjectURL(this.audio.src);
+    }
+
     this.positionCb = options.positionCb;
     this.endedCb = options.endedCb;
 

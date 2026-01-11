@@ -62,7 +62,7 @@ function log(level: Level, domain: string, message: string) {
   }
 
   LOGS.push({ level, domain, message });
-  while (LOGS.length > MAXIMUM_LOGS) LOGS.pop();
+  while (LOGS.length > MAXIMUM_LOGS) LOGS.shift();
 }
 
 export function useLogger(domain: string): Logger {

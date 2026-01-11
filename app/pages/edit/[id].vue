@@ -154,7 +154,7 @@ async function onSaveClick() {
 
   await database.updateItems(book.value.id, newItems, oldItems, delItems);
 
-  book.value.name = name.value || newItems[0].name;
+  book.value.name = name.value || (newItems.length > 0 ? newItems[0].name : items.value[0]?.name || "Untitled");
   book.value.authors = authors.value
     .split(",")
     .map((author) => author.trim())
