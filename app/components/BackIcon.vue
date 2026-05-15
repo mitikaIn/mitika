@@ -1,4 +1,7 @@
 <template>
-  <ArrowLeftIcon class="size-4 rtl:hidden" />
-  <ArrowRightIcon class="size-4 ltr:hidden" />
+  <PhArrowLeft class="size-6 rtl:hidden" />
+  <PhArrowRight class="size-6 ltr:hidden" />
 </template>
+<script setup lang="ts">
+import { PhArrowLeft, PhArrowRight } from "@phosphor-icons/vue";
+</script>

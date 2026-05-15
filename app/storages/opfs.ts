@@ -1,10 +1,10 @@
 import { useLogger } from "@/logging";
-import { Storage } from "@/storages/storage";
+import { type Storage } from "@/storages/storage";
 
 const { debug } = useLogger("opfs");
 
-export class Opfs extends Storage {
-  override name = "opfs";
+export class Opfs implements Storage {
+  id = "opfs";
 
   private split(path: string): { segments: string[]; fileName: string } {
     if (!path.startsWith("/") || path.endsWith("/")) throw new Error(`Invalid path: ${path}`);
@@ -23,9 +23,7 @@ export class Opfs extends Storage {
     create: boolean = false,
   ): Promise<FileSystemDirectoryHandle> {
     let dir = await navigator.storage.getDirectory();
-    for (let i = 0; i <= segments.length - 1; i++) {
-      dir = await dir.getDirectoryHandle(segments[i], { create });
-    }
+    for (const segment of segments) dir = await dir.getDirectoryHandle(segment, { create });
     return dir;
   }
 
@@ -48,6 +46,8 @@ export class Opfs extends Storage {
     }
 
     const blob = await handle.getFile();
+    debug(`Read ${fileName}`);
+
     return blob;
   }
 
@@ -62,23 +62,15 @@ export class Opfs extends Storage {
     debug(`Wrote ${fileName}`);
   }
 
-  async remove(path: string): Promise<boolean> {
+  async remove(path: string): Promise<void> {
     const { segments, fileName } = this.split(path);
     debug(`Removing ${fileName}`);
 
-    let directory;
     try {
-      directory = await this.getDirectory(segments);
-    } catch {
-      return false;
-    }
-
-    try {
+      const directory = await this.getDirectory(segments);
       await directory.removeEntry(fileName);
-    } catch {
-      return false;
-    }
+    } catch {}
 
-    return true;
+    debug(`Removed ${fileName}`);
   }
 }

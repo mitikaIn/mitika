@@ -27,6 +27,7 @@
 - Add loading screen.
 - Report errors through UI.
 - Use less `await`, use `Promise.all`.
+- Random bookmark names
 
 ## Code
 

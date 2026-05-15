@@ -1,21 +1,15 @@
-import { type Object, ObjectType, type Item, type Book } from "@/models";
+import { type Book, type Item, type Object } from "@/models";
+import { type Key } from "@/models/settings";
 
-export enum DatabaseEvent {
-  Books = "books",
-  Items = "items",
-  Objects = "objects",
-  Annotations = "annotations",
-  Marks = "marks",
-  Notes = "notes",
-}
+export abstract class Database {
+  id: string = "database";
 
-export abstract class Database extends EventTarget {
   abstract open(): Promise<void>;
   abstract close(): Promise<void>;
 
   abstract putObject(object: Object): Promise<void>;
-  abstract getObject(id: string): Promise<Object>;
-  abstract getObjects(itemId: string | null, type: ObjectType | null): Promise<Object[]>;
+  abstract getObject<T extends Object>(id: string): Promise<T>;
+  abstract getObjects<T extends Object>(itemId: string | null, type: string | null): Promise<T[]>;
   abstract delObject(mark: Object): Promise<void>;
 
   abstract putItem(item: Item): Promise<void>;
@@ -34,11 +28,6 @@ export abstract class Database extends EventTarget {
   abstract getBooks(): Promise<Book[]>;
   abstract delBook(book: Book): Promise<void>;
 
-  abstract getProperty(key: string, fallback: any): Promise<any>;
-  abstract setProperty(key: string, value: any): Promise<void>;
-
-  emit(name: DatabaseEvent, detail: any) {
-    const event = new CustomEvent(name, { detail: detail });
-    this.dispatchEvent(event);
-  }
+  abstract getProperty<T>(key: Key, fallback: T): Promise<T>;
+  abstract setProperty<T>(key: Key, value: T): Promise<void>;
 }

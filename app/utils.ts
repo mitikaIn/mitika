@@ -1,6 +1,3 @@
-import { Constants } from "@/constants";
-import { ItemType } from "@/models";
-
 export function getBaseName(path: string): string {
   const baseName = path.split(/[\\/]/).pop();
   if (baseName == undefined) throw new Error(`Invalid path: ${path}`);
@@ -9,9 +6,9 @@ export function getBaseName(path: string): string {
 
 export function splitBaseName(baseName: string): { name: string; extension: string } {
   const splits = baseName.split(".");
-  if (splits.length == 0) throw new Error(`Invalid base name: ${baseName}`);
-  const name = splits[0];
-  const extension = splits[splits.length - 1];
+  if (splits.length == 0) throw new Error(`Invalid baseName: ${baseName}`);
+  const extension = splits.pop()!;
+  const name = splits.join(".");
   return { name, extension };
 }
 
@@ -22,31 +19,4 @@ export function toTitleCase(str: string): string {
     .map((x) => x.slice(0, 1).toLocaleUpperCase() + x.slice(1))
     .join(" ");
   return title;
-}
-
-export function itemTypeToString(type: ItemType): string {
-  if (type == ItemType.Audiobook) return "Audiobook";
-  else if (type == ItemType.Ebook) return "Ebook";
-  else throw new Error(`Unknown item type: ${type}`);
-}
-
-export function itemTypeToFileTypes(type: ItemType): string[] {
-  if (type == ItemType.Audiobook) return Constants.AUDIOBOOK_TYPES;
-  else if (type == ItemType.Ebook) return Constants.EBOOK_TYPES;
-  else throw new Error(`Unknown item type: ${type}`);
-}
-
-export function formatToTimestamp(value: number, hoursLength: number = 0): string {
-  let delta = value;
-  const hours = Math.floor(delta / 3600);
-  delta = delta % 3600;
-  const minutes = Math.floor(delta / 60);
-  delta = delta % 60;
-  const seconds = Math.floor(delta);
-
-  const hoursStr = hours.toString().padStart(hoursLength, "0");
-  const minsStr = minutes.toString().padStart(2, "0");
-  const secsStr = seconds.toString().padStart(2, "0");
-
-  return `${hoursStr}:${minsStr}:${secsStr}`;
 }

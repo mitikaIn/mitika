@@ -1,5 +1,8 @@
-import { type Database, DatabaseEvent } from "@/database/database";
+import { type Database } from "@/database/database";
 import { IndexedDb } from "@/database/indexedDb";
+import { useLogger } from "@/logging";
+
+const { debug } = useLogger("database");
 
 let database: Database;
 
@@ -11,7 +14,8 @@ export async function useDatabase(): Promise<Database> {
 
   await database.open();
 
+  debug(`Using database: ${database.id}`);
   return database;
 }
 
-export { type Database, DatabaseEvent };
+export { type Database };

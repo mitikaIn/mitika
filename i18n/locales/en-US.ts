@@ -1,4 +1,6 @@
 export default {
+  "+10s": "+10s",
+  "-10s": "-10s",
   "0.25x": "0.25x",
   "0.5x": "0.5x",
   "1.5x": "1.5x",
@@ -70,6 +72,7 @@ export default {
   "Original": "Original",
   "Outline": "Outline",
   "Page not found": "Page not found",
+  "({position})": "({position})",
   "Recent first": "Recent first",
   "Recent last": "Recent last",
   "Remove {name}?": "Remove {name}?",

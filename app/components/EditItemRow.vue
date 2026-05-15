@@ -1,129 +1,124 @@
 <template>
-  <li class="list-row @container items-center">
-    <template v-if="!editing">
-      <MusicIcon
-        v-if="item.type == ItemType.Audiobook"
-        class="size-4"
-      />
-      <BookIcon
-        v-else-if="item.type == ItemType.Ebook"
-        class="size-4"
-      />
-      <template v-else>{{ throwError(item.type) }}</template>
-      <div class="list-col-grow flex flex-col gap-2 truncate">
-        <p>
-          {{ item.name }}
-        </p>
-        <p class="italic">
-          {{ item.file.name }}
-        </p>
-      </div>
-      <button
-        class="btn btn-ghost hidden @lg:flex"
-        :disabled="position == 0"
-        @click="$emit('move', position, position - 1)"
+  <li
+    v-if="!editing"
+    class="list-row items-center"
+  >
+    <PhMusicNotes
+      v-if="item.type == ItemType.Audio"
+      class="size-6"
+    />
+    <PhFileText
+      v-else-if="item.type == ItemType.Pdf"
+      class="size-6"
+    />
+    <AssertNotReached
+      v-else
+      :message="`Unknown item: ${item}`"
+    />
+    <p class="list-col-grow font-semibold">
+      {{ item.name }}
+    </p>
+    <div class="list-col-wrap col-start-1 col-end-4 flex flex-col gap-2">
+      <p class="italic">
+        {{ item.file.name }}
+      </p>
+      <Menu
+        :btnSize="4"
+        class="justify-end gap-2"
+        dropdownClassName="dropdown-end"
+        :gap="2"
       >
-        <ChevronUpIcon class="size-4" />
-      </button>
-      <button
-        class="btn btn-ghost hidden @lg:flex"
-        :disabled="position == length - 1"
-        @click="$emit('move', position, position + 1)"
-      >
-        <ChevronDownIcon class="size-4" />
-      </button>
-      <button
-        class="btn btn-ghost hidden @lg:flex"
-        @click="editing = true"
-      >
-        <EditIcon class="size-4" />
-      </button>
-      <button
-        class="btn btn-ghost hidden @lg:flex"
-        @click="$emit('remove')"
-      >
-        <TrashIcon class="size-4" />
-      </button>
-      <Dropdown
-        buttonClass="btn-ghost @lg:hidden"
-        dropdownClass="dropdown-end"
-        :popoverId="item.id"
-      >
-        <template #button>
-          <MoreVerticalIcon class="size-4" />
-        </template>
-        <template #content>
-          <ul class="menu bg-base-100 w-64 rounded-sm shadow-sm">
-            <li v-show="position != 0">
-              <button @click="$emit('move', position, position - 1)">Move up</button>
-            </li>
-            <li v-show="position != length - 1">
-              <button @click="$emit('move', position, position + 1)">Move down</button>
-            </li>
-            <li>
-              <button @click="editing = true">Edit</button>
-            </li>
-            <li>
-              <button @click="$emit('remove')">Remove</button>
-            </li>
-          </ul>
-        </template>
-      </Dropdown>
-    </template>
-    <template v-else>
-      <input
-        v-model.trim="name"
-        class="input list-col-grow w-full"
-        @keyup.enter="save"
-        @keyup.esc="cancel"
-      />
+        <MenuItem
+          :disabled="position == 0"
+          :label="$t('Move up')"
+          @click="$emit('move', position, position - 1)"
+        >
+          <PhCaretUp class="size-6" />
+        </MenuItem>
+        <MenuItem
+          :disabled="position == length - 1"
+          :label="$t('Move down')"
+          @click="$emit('move', position, position + 1)"
+        >
+          <PhCaretDown class="size-6" />
+        </MenuItem>
+        <MenuItem
+          :label="$t('Edit')"
+          @click="editing = true"
+        >
+          <PhPencilSimple class="size-6" />
+        </MenuItem>
+        <MenuItem
+          :label="$t('Remove')"
+          @click="$emit('remove')"
+        >
+          <PhTrashSimple class="size-6" />
+        </MenuItem>
+      </Menu>
+    </div>
+  </li>
+  <li
+    v-else
+    class="list-row items-center"
+  >
+    <input
+      v-model.trim="name"
+      class="input list-col-grow col-start-1 col-end-4 w-full"
+      @keyup.enter="onSaveClick"
+      @keyup.esc="onCancelClick"
+    />
+    <div class="list-col-wrap col-start-1 col-end-4 flex flex-row justify-end gap-2">
       <button
         class="btn btn-ghost"
         :disabled="name.length == 0"
-        @click="save()"
+        @click="onSaveClick"
       >
-        <CheckIcon class="size-4" />
+        <PhCheck class="size-6" />
       </button>
       <button
         class="btn btn-ghost"
-        @click="cancel()"
+        @click="onCancelClick"
       >
-        <XIcon class="size-4" />
+        <PhX class="size-6" />
       </button>
-    </template>
+    </div>
   </li>
 </template>
-<script lang="ts" setup>
+<script setup lang="ts">
+import {
+  PhFileText,
+  PhMusicNotes,
+  PhPencilSimple,
+  PhTrashSimple,
+  PhCaretUp,
+  PhCaretDown,
+  PhCheck,
+  PhX,
+} from "@phosphor-icons/vue";
 import { type Item, ItemType } from "@/models";
 
-interface Props {
+const emit = defineEmits<{
+  change: [name: string];
+  move: [src: number, dst: number];
+  remove: [];
+}>();
+
+const { item } = defineProps<{
   position: number;
   length: number;
   item: Item;
-}
-
-interface Emits {
-  move: [src: number, dst: number];
-  remove: [];
-}
-
-const props = defineProps<Props>();
-defineEmits<Emits>();
+}>();
 
 const editing = ref(false);
-const name = ref(props.item.name);
+const name = ref(item.name);
 
-function throwError(type: ItemType) {
-  throw new Error(`Unknown type: ${type}`);
-}
-
-function cancel() {
-  name.value = props.item.name;
+function onCancelClick() {
+  name.value = item.name;
   editing.value = false;
 }
 
-function save() {
-  props.item.name = name.value;
+function onSaveClick() {
+  emit("change", name.value);
   editing.value = false;
 }
 </script>

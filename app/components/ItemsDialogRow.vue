@@ -1,40 +1,48 @@
 <template>
   <li class="list-row items-center">
-    <MusicIcon
-      v-if="item.type == ItemType.Audiobook"
-      class="size-4"
+    <PhMusicNotes
+      v-if="item.type == ItemType.Audio"
+      class="size-6"
     />
-    <BookIcon
-      v-else-if="item.type == ItemType.Ebook"
-      class="size-4"
+    <PhFileText
+      v-else-if="item.type == ItemType.Pdf"
+      class="size-6"
     />
-    <template v-else>{{ throwError(item.type) }}</template>
-    <button
-      class="list-col-grow cursor-pointer text-start"
-      @click="$emit('click')"
-    >
+    <AssertNotReached
+      v-else
+      :message="`Unknown item: ${item}`"
+    />
+    <p class="list-col-grow font-semibold">
       {{ item.name }}
-    </button>
-    <p class="list-col-wrap opacity-75">
+    </p>
+    <p class="list-col-wrap col-start-1 col-end-4 italic">
       {{ item.file.name }}
     </p>
+    <button
+      class="btn btn-ghost"
+      @click="$emit('click')"
+    >
+      <PhPlay
+        v-if="item.type == ItemType.Audio"
+        class="size-6"
+      />
+      <PhBookOpen
+        v-else-if="item.type == ItemType.Pdf"
+        class="size-6"
+      />
+      <AssertNotReached
+        v-else
+        :message="`Unknown item: ${item}`"
+      />
+    </button>
   </li>
 </template>
 <script setup lang="ts">
+import { PhFileText, PhMusicNotes, PhPlay, PhBookOpen } from "@phosphor-icons/vue";
+
 import { type Item, ItemType } from "@/models";
 
-interface Emits {
-  click: [];
-}
+defineEmits<{ click: [] }>();
 
-interface Props {
-  item: Item;
-}
-
-defineProps<Props>();
-defineEmits<Emits>();
-
-function throwError(type: ItemType) {
-  throw new Error(`Unknown type: ${type}`);
-}
+defineProps<{ item: Item }>();
 </script>

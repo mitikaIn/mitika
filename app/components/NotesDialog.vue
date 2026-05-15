@@ -1,117 +1,91 @@
 <template>
   <Dialog
+    className="w-[90vw] max-w-2xl"
     ref="dialog"
-    styleClass="@2xl:w-2xl max-w-none"
   >
     <div class="flex h-[75vh] flex-col gap-4">
-      <div class="flex flex-row gap-4">
+      <div class="flex flex-row gap-2">
+        <button class="btn invisible">
+          <PhX class="size-6" />
+        </button>
         <TitleBar
           class="grow"
-          subtitle=""
           :title="$t('Notes')"
         />
         <button
           class="btn btn-ghost"
           @click="dialog!.hide()"
         >
-          <XIcon class="size-4" />
+          <PhX class="size-6" />
         </button>
       </div>
       <input
-        v-model="search"
+        v-model="needle"
         class="input w-full"
-        :placeholder="$t('Search…')"
+        :placeholder="$t('Search notes…')"
       />
-      <div class="flex h-0 grow flex-col overflow-scroll">
-        <ol class="list peer">
-          <NotesDialogRow
-            v-for="note in filteredNotes"
-            :key="note.id"
-            :note="note"
-            @click="onClick(note)"
-            @remove="onRemove(note)"
-            @edit="onEdit(note)"
-          />
-        </ol>
-        <Status
-          class="m-auto hidden peer-empty:flex"
-          :description="$t(emptyStateDescription)"
-          :title="$t('No notes found')"
-          :type="StatusType.Info"
+      <ol
+        v-auto-animate
+        class="list peer h-0 grow overflow-y-scroll"
+      >
+        <NotesDialogRow
+          v-for="note in filteredNotes"
+          :note="note"
+          @change="(name: string, description: string) => onChange(note, name, description)"
+          @open="onOpen(note)"
+          @remove="onRemove(note)"
         />
-      </div>
+      </ol>
+      <Placeholder
+        class="hidden h-full peer-empty:flex"
+        :description="$t(needle ? 'No matching note exists.' : 'Add a note to display it here.')"
+        :title="$t('No note found')"
+        :type="PlaceholderType.Info"
+      />
     </div>
   </Dialog>
 </template>
 <script setup lang="ts">
-import { StatusType } from "@/components/statusType";
-import { type Database, DatabaseEvent, useDatabase } from "@/database";
-import { type Item, type Note, ObjectType } from "@/models";
+import { PhX } from "@phosphor-icons/vue";
+import { PlaceholderType } from "@/components/Placeholder.vue";
+import { useDatabase } from "@/database";
+import { collatePosition } from "@/models/item";
+import { type Note } from "@/models/object";
 
-interface Props {
-  item: Item;
-}
+const emit = defineEmits<{ open: [note: Note]; refresh: [] }>();
 
-interface Emits {
-  openNote: [note: Note];
-}
+const { notes } = defineProps<{ notes: Note[] }>();
 
-const { item } = defineProps<Props>();
-const emit = defineEmits<Emits>();
-
-let database: Database | null;
+const needle = ref("");
 
 const dialog = useTemplateRef("dialog");
-const notes: Ref<Note[]> = ref([]);
-const search = ref("");
 
-const filteredNotes = computed(() => {
-  return notes.value.filter((note) =>
-    `${note.name} ${note.description}`.toLowerCase().includes(search.value.toLowerCase()),
-  );
-});
-
-const emptyStateDescription = computed(() =>
-  search.value.length == 0 ? "Add a note to display it here." : "No matching note exists.",
+const filteredNotes = computed(() =>
+  notes.filter((note) => note.name.toLowerCase().includes(needle.value.toLowerCase())),
 );
-
-function onClick(note: Note) {
-  emit("openNote", note);
-  dialog.value!.hide();
-}
-
-async function onEdit(note: Note) {
-  await database!.putObject(toRaw(note));
-}
-
-async function onRemove(note: Note) {
-  await database!.delObject(toRaw(note));
-}
-
-async function onNotesChanged() {
-  notes.value = (await database!.getObjects(item.id, ObjectType.Note)) as Note[];
-}
 
 function toggle() {
   dialog.value!.toggle();
 }
 
+async function onChange(note: Note, name: string, description: string) {
+  note.name = name;
+  note.description = description;
+  const database = await useDatabase();
+  await database.putObject(toRaw(note));
+  emit("refresh");
+}
+
+async function onOpen(note: Note) {
+  emit("open", note);
+  dialog.value!.hide();
+}
+
+async function onRemove(note: Note) {
+  const database = await useDatabase();
+  await database.delObject(toRaw(note));
+  emit("refresh");
+}
+
 defineExpose({ toggle });
-
-database = await useDatabase();
-watch(
-  () => item,
-  async () => {
-    await onNotesChanged();
-  },
-  { immediate: true },
-);
-
-onMounted(() => {
-  database!.addEventListener(DatabaseEvent.Notes, onNotesChanged);
-});
-
-onUnmounted(() => {
-  database!.removeEventListener(DatabaseEvent.Notes, onNotesChanged);
-});
 </script>

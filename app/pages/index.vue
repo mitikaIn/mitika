@@ -1,287 +1,172 @@
 <template>
   <div class="flex flex-col gap-8 p-4">
-    <header class="@container flex flex-row items-center gap-4">
+    <header class="flex flex-row items-center gap-4">
       <button
-        class="btn btn-ghost"
-        @click="onOpenClick"
+        class="btn btn-ghost justify-self-start"
+        @click="onAdd"
       >
-        <FolderIcon class="size-4" />
+        <PhFolderPlus class="size-6" />
       </button>
-      <div class="flex grow justify-center @lg:justify-end">
-        <label class="input flex items-center gap-2">
-          <SearchIcon class="size-4" />
-          <input
-            v-model.trim="search"
-            class="w-full"
-            :placeholder="$t('Search by name, authors, tags…')"
-            type="text"
-          />
-        </label>
+      <div class="flex grow flex-row items-center gap-4">
+        <div class="flex basis-2/3 flex-row items-center">
+          <label class="input flex max-w-xl flex-row items-center gap-2">
+            <PhMagnifyingGlass class="text-base-content/50 size-6" />
+            <input
+              v-model.trim="search"
+              class="w-full"
+              :placeholder="$t('Search by name, authors, tags…')"
+              type="text"
+            />
+          </label>
+        </div>
+        <Menu
+          :btnSize="4"
+          class="basis-1/3 justify-end gap-4"
+          dropdownClass="dropdown-end"
+          :gap="4"
+        >
+          <MenuItem
+            :label="$t('View')"
+            @click="viewDialog!.toggle()"
+          >
+            <PhEye class="size-6" />
+          </MenuItem>
+          <MenuItem
+            :label="$t('Sort')"
+            @click="sortDialog!.toggle()"
+          >
+            <PhFunnelSimple class="size-6" />
+          </MenuItem>
+          <MenuItem
+            :label="$t('Tags')"
+            @click="tagsDialog!.toggle()"
+          >
+            <PhFunnel class="size-6" />
+          </MenuItem>
+          <MenuItem
+            :label="$t('Settings')"
+            @click="navigateTo('/settings')"
+          >
+            <PhGear class="size-6" />
+          </MenuItem>
+          <MenuItem
+            :label="$t('Logs')"
+            @click="navigateTo('/logs')"
+          >
+            <PhPulse class="size-6" />
+          </MenuItem>
+          <MenuItem
+            :label="$t('Help')"
+            @click="navigateTo('/help')"
+          >
+            <PhQuestion class="size-6" />
+          </MenuItem>
+        </Menu>
       </div>
-      <Dropdown
-        buttonClass="btn-ghost"
-        dropdownClass="dropdown-end"
-        popoverId="indexPo"
-      >
-        <template #button>
-          <MenuIcon class="size-4" />
-        </template>
-        <template #content>
-          <ul class="menu bg-base-100 w-64 rounded-sm shadow-sm">
-            <li v-if="allTags.length != 0">
-              <details>
-                <summary>
-                  {{ $t("Tags") }}
-                </summary>
-                <ul>
-                  <li
-                    v-for="tag of allTags"
-                    :key="tag"
-                  >
-                    <label class="label">
-                      <input
-                        :checked="selectedTags.includes(tag)"
-                        class="checkbox"
-                        type="checkbox"
-                        @change="onTagChange(tag)"
-                      />
-                      {{ tag }}
-                    </label>
-                  </li>
-                </ul>
-              </details>
-            </li>
-            <li>
-              <details>
-                <summary>
-                  {{ $t("Sort") }}
-                </summary>
-                <ul>
-                  <li>
-                    <label class="label">
-                      <input
-                        v-model="sort"
-                        class="radio"
-                        name="sort"
-                        type="radio"
-                        :value="Sort.Alphabetical"
-                      />
-                      {{ $t("A–Z") }}
-                    </label>
-                  </li>
-                  <li>
-                    <label class="label">
-                      <input
-                        v-model="sort"
-                        class="radio"
-                        name="sort"
-                        type="radio"
-                        :value="Sort.ReverseAlphabetical"
-                      />
-                      {{ $t("Z–A") }}
-                    </label>
-                  </li>
-                  <li>
-                    <label class="label">
-                      <input
-                        v-model="sort"
-                        class="radio"
-                        name="sort"
-                        type="radio"
-                        :value="Sort.RecentFirst"
-                      />
-                      {{ $t("Recent first") }}
-                    </label>
-                  </li>
-                  <li>
-                    <label class="label">
-                      <input
-                        v-model="sort"
-                        class="radio"
-                        name="sort"
-                        type="radio"
-                        :value="Sort.RecentLast"
-                      />
-                      {{ $t("Recent last") }}
-                    </label>
-                  </li>
-                </ul>
-              </details>
-            </li>
-            <li>
-              <NuxtLink to="/logs">
-                {{ $t("Logs") }}
-              </NuxtLink>
-            </li>
-            <li>
-              <button>
-                {{ $t("Help") }}
-              </button>
-            </li>
-            <li>
-              <button @click="aboutDialog!.toggle()">
-                {{ $t("About {name}", { name: Constants.NAME }) }}
-              </button>
-            </li>
-          </ul>
-        </template>
-      </Dropdown>
     </header>
     <main class="h-0 grow overflow-scroll">
-      <Status
-        v-if="filteredBooks.length == 0"
-        :action="$t('Open New Book')"
-        class="h-full"
-        :description="$t('Add a few books to open them here.')"
-        :title="books.length == 0 ? $t('Library is empty') : $t('No such book')"
-        :type="StatusType.Info"
-        @click="onOpenClick"
+      <BooksGrid
+        :books="books"
+        :search="search"
+        :selectedTags="selectedTags"
+        :sortType="sortType"
+        :viewType="viewType"
+        @add="onAdd"
+        @open="onOpen"
+        @edit="onEdit"
+        @remove="onRemove"
       />
-      <div
-        v-else
-        class="grid grid-cols-[repeat(auto-fill,minmax(256px,1fr))] place-items-center gap-4"
-      >
-        <BookItem
-          v-for="book of filteredBooks"
-          :key="book.id"
-          :book="book"
-          @edit="onBookEdit(book)"
-          @open="onBookOpen(book)"
-          @remove="onBookRemove(book)"
-        />
-      </div>
     </main>
-    <AboutDialog ref="aboutDialog" />
+    <BooksSortDialog
+      ref="sortDialog"
+      v-model="sortType"
+    />
+    <BooksTagsDialog
+      ref="tagsDialog"
+      :books="books"
+      v-model="selectedTags"
+    />
+    <BooksViewDialog
+      ref="viewDialog"
+      v-model="viewType"
+    />
     <MessageDialog ref="messageDialog" />
+    <SourcesDialog ref="sourcesDialog" />
   </div>
 </template>
 <script lang="ts" setup>
-import { ButtonType } from "@/components/buttonType";
-import { StatusType } from "@/components/statusType";
-import { Constants } from "@/constants";
+import { ButtonType } from "@/components/MessageDialog.vue";
 import { useDatabase } from "@/database";
 import { useLogger } from "@/logging";
-import { type Book, createAudiobook, createBook, createEbook } from "@/models";
-import { useSource } from "@/sources";
+import { type Book, ITEM_TYPES_MAP, newBook, newItem } from "@/models";
+import { BooksSortType, BooksViewType, Key } from "@/models/settings";
 import { useStorage } from "@/storages";
-import { toTitleCase, splitBaseName } from "@/utils";
-
-const { f, debug } = useLogger("home");
-const { t } = useI18n();
-
-enum Sort {
-  Alphabetical = "alphabetical",
-  RecentFirst = "recentFirst",
-  RecentLast = "recentLast",
-  ReverseAlphabetical = "reverseAlphabetical",
-}
+import { splitBaseName, toTitleCase } from "@/utils";
+import {
+  PhFolderPlus,
+  PhMagnifyingGlass,
+  PhEye,
+  PhFunnelSimple,
+  PhFunnel,
+  PhGear,
+  PhPulse,
+  PhQuestion,
+} from "@phosphor-icons/vue";
 
 const database = await useDatabase();
-const source = await useSource();
+const { f, debug } = useLogger("home");
+const { t } = useI18n();
 const storage = await useStorage();
 
-const aboutDialog = useTemplateRef("aboutDialog");
-const messageDialog = useTemplateRef("messageDialog");
-
+const books = ref(await database.getBooks());
 const search = ref("");
-const sort: Ref<string> = ref(await database.getProperty("home.sort", Sort.RecentFirst));
-const books: Ref<Book[]> = ref(await database.getBooks());
+const selectedTags = ref(new Set<string>());
+const sortType = ref(await database.getProperty(Key.BooksSort, BooksSortType.RecentFirst));
+const viewType = ref(await database.getProperty(Key.BooksView, BooksViewType.Card));
 
-const allTags: Ref<string[]> = ref([]);
-const selectedTags: Ref<string[]> = ref([]);
+const messageDialog = useTemplateRef("messageDialog");
+const sortDialog = useTemplateRef("sortDialog");
+const sourcesDialog = useTemplateRef("sourcesDialog");
+const tagsDialog = useTemplateRef("tagsDialog");
+const viewDialog = useTemplateRef("viewDialog");
 
-const sortedBooks = computed(() =>
-  books.value.toSorted(function (a, b) {
-    const order = sort.value;
-    if (order == Sort.Alphabetical) return a.name.localeCompare(b.name);
-    if (order == Sort.RecentFirst)
-      return (b.lastOpened > a.lastOpened ? 1 : 0) - (b.lastOpened < a.lastOpened ? 1 : 0);
-    if (order == Sort.RecentLast)
-      return (a.lastOpened > b.lastOpened ? 1 : 0) - (a.lastOpened < b.lastOpened ? 1 : 0);
-    if (order == Sort.ReverseAlphabetical) return b.name.localeCompare(a.name);
-    return 0;
-  }),
-);
-
-const filteredBooks = computed(() =>
-  sortedBooks.value.filter(
-    (book) =>
-      (allTags.value.length == selectedTags.value.length ||
-        new Set(book.tags).intersection(new Set(selectedTags.value)).size != 0) &&
-      `${book.name} ${book.authors} ${book.tags.join()}`
-        .toLowerCase()
-        .includes(search.value.toLowerCase()),
-  ),
-);
+watch(sortType, (newSortType) => database.setProperty(Key.BooksSort, newSortType));
+watch(viewType, (newViewType) => database.setProperty(Key.BooksView, newViewType));
 
 async function refreshBooks() {
   const newBooks = await database.getBooks();
-  const tags: Set<string> = new Set();
-  for (const book of newBooks) for (const tag of book.tags) tags.add(tag);
-  allTags.value = [...tags.values()].toSorted();
-  selectedTags.value = selectedTags.value.filter((tag) => allTags.value.includes(tag));
   books.value = newBooks;
 }
 
-function onTagChange(tag: string) {
-  const idx = selectedTags.value.indexOf(tag);
-  if (idx == -1) selectedTags.value.push(tag);
-  else selectedTags.value.splice(idx, 1);
+async function onEdit(book: Book) {
+  await navigateTo(`/${book.id}/edit`);
 }
 
-async function onOpenClick() {
-  const files = await source.chooseFiles(true, [
-    {
-      name: t("Book"),
-      types: [...Constants.AUDIOBOOK_TYPES, ...Constants.EBOOK_TYPES],
-    },
-  ]);
-  if (files.length == 0) return;
-
-  const book = createBook(toTitleCase(splitBaseName(files[0].name).name));
-  await database.putBook(book);
-  const items = [];
-  for (const file of files) {
-    const name = toTitleCase(splitBaseName(file.name).name);
-    let item;
-    if (Constants.AUDIOBOOK_TYPES.includes(file.type)) item = createAudiobook(book.id, name, file);
-    else if (Constants.EBOOK_TYPES.includes(file.type)) item = createEbook(book.id, name, file);
-    else throw new Error(`Unknown type: ${file.type}`);
-    items.push(item);
-  }
-  await database.updateItems(book.id, items, [], []);
-  await refreshBooks();
+async function onOpen(book: Book) {
+  await navigateTo(`/${book.id}`);
 }
 
-async function onBookOpen(book: Book) {
-  await navigateTo(`/open/${book.id}`);
-}
-
-async function onBookEdit(book: Book) {
-  await navigateTo(`/edit/${book.id}`);
-}
-
-async function onBookRemove(book: Book) {
+async function onRemove(book: Book) {
   const title = t("Remove {name}?", { name: book.name });
   const message = t(
     "Removing a book clears its bookmarks, notes etc. However the book's files are not deleted.",
   );
   const buttons = [
-    { action: "cancel", text: t("Cancel"), type: ButtonType.Normal },
-    { action: "remove", text: t("Remove"), type: ButtonType.Destructive },
+    { action: "cancel", label: t("Cancel"), type: ButtonType.Normal },
+    { action: "remove", label: t("Remove"), type: ButtonType.Destructive },
   ];
-  await messageDialog.value!.show(title, message, buttons, async (action: string) => {
+  messageDialog.value!.show(title, message, buttons, async (action: string) => {
     if (action == "remove") {
       debug(`Removing book: ${book.id}`);
 
       const items = await database.getItems(book.id);
       for (const item of items) {
         debug(f`Dropping item file: ${item.file}`);
-        await source.dropFile(toRaw(item).file);
+        await sourcesDialog.value!.dropFile(toRaw(item).file);
       }
 
       debug("Removing cover image");
-      await storage.remove(`/covers/${book.id}.png`);
+      await storage.remove(`/books/${book.id}/cover.png`);
 
       await database.delBook(book);
       await refreshBooks();
@@ -289,8 +174,31 @@ async function onBookRemove(book: Book) {
   });
 }
 
-watch(sort, async (newSort) => await database.setProperty("home.sort", newSort));
+async function onAdd() {
+  const files = await sourcesDialog.value!.chooseFiles(true, [
+    {
+      name: t("Book"),
+      types: [...ITEM_TYPES_MAP.keys()],
+    },
+  ]);
+  if (files.length == 0) return;
 
-await refreshBooks();
-selectedTags.value = [...allTags.value];
+  const book = newBook(toTitleCase(splitBaseName(files[0]!.name).name));
+  await database.putBook(book);
+  const items = [];
+  for (const file of files) {
+    const name = toTitleCase(splitBaseName(file.name).name);
+    const item = newItem(book.id, name, file);
+    items.push(item);
+  }
+  await database.updateItems(book.id, items, [], []);
+
+  await refreshBooks();
+
+  await navigateTo(`/${book.id}`);
+}
+
+onMounted(async () => {
+  await refreshBooks();
+});
 </script>

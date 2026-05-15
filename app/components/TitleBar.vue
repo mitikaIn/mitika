@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col justify-center text-center">
     <div
-      v-if="title.length != 0"
+      v-if="title"
       class="flex flex-row"
     >
       <h1 class="w-0 grow truncate font-bold">
@@ -9,7 +9,7 @@
       </h1>
     </div>
     <div
-      v-if="subtitle.length != 0"
+      v-if="subtitle"
       class="flex flex-row"
     >
       <span class="w-0 grow truncate italic">
@@ -19,10 +19,8 @@
   </div>
 </template>
 <script setup lang="ts">
-interface Props {
-  title: string;
-  subtitle: string;
-}
-
-defineProps<Props>();
+defineProps<{
+  title?: string;
+  subtitle?: string;
+}>();
 </script>

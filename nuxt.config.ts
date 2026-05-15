@@ -3,10 +3,10 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-04-03",
-  components: {
-    dirs: [{ path: "~/components/icons", pathPrefix: false }, "~/components"],
-  },
   css: ["~/assets/css/style.css"],
+  experimental: {
+    viteEnvironmentApi: true,
+  },
   ssr: false,
   devtools: { enabled: false },
   i18n: {
@@ -16,17 +16,16 @@ export default defineNuxtConfig({
         file: "en-US.ts",
       },
     ],
-    lazy: true,
     defaultLocale: "en",
   },
-  modules: ["@nuxtjs/i18n"],
+  modules: ["@formkit/auto-animate/nuxt", "@nuxtjs/i18n"],
   vite: {
     build: {
       target: "esnext",
     },
     plugins: [tailwindcss()],
     optimizeDeps: {
-      exclude: ["mupdf"], // Exclude mupdf from pre-bundling
+      exclude: ["mupdf"],
     },
     worker: {
       format: "es",

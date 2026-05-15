@@ -1,47 +1,25 @@
-import { type Audiobook, type AudiobookPosition, createAudiobook } from "@/models/audiobook";
-import { type Book, createBook } from "@/models/book";
-import {
-  type Ebook,
-  type EbookPosition,
-  EbookResizePolicy,
-  EbookLayout,
-  createEbook,
-} from "@/models/ebook";
-import { type File, type Item, type Position, ItemType } from "@/models/item";
-import {
-  type Annotation,
-  type Mark,
-  type Note,
-  type Object,
-  ObjectType,
-  createAnnotation,
-  createMark,
-  createNote,
-} from "@/models/object";
+import { newAudio } from "@/models/audio";
+import { type Book, newBook } from "@/models/book";
+import { type File } from "@/models/file";
+import { type Item, ItemType, type Position } from "@/models/item";
+import { type Object, ObjectType } from "@/models/object";
+import { newPdf } from "@/models/pdf";
 
-export type {
-  Audiobook,
-  AudiobookPosition,
-  Book,
-  Ebook,
-  Annotation,
-  EbookPosition,
-  File,
-  Item,
-  Mark,
-  Note,
-  Object,
-  Position,
-};
-export {
-  createAudiobook,
-  createBook,
-  createEbook,
-  createAnnotation,
-  createMark,
-  createNote,
-  EbookLayout,
-  EbookResizePolicy,
-  ItemType,
-  ObjectType,
-};
+export { type Book, newBook };
+export { type File };
+export { type Item, ItemType, type Position };
+export { type Object, ObjectType };
+
+export const ITEM_TYPES_MAP: Map<File["type"], ItemType> = new Map([
+  ["application/epub+zip", ItemType.Pdf],
+  ["audio/mp4", ItemType.Audio],
+  ["audio/mpeg", ItemType.Audio],
+  ["application/pdf", ItemType.Pdf],
+]);
+
+export function newItem(bookId: string, name: string, file: File): Item {
+  const type = ITEM_TYPES_MAP.get(file.type);
+  if (type == ItemType.Audio) return newAudio(bookId, name, file);
+  else if (type == ItemType.Pdf) return newPdf(bookId, name, file);
+  else throw new Error(`Unknown type: ${type}`);
+}

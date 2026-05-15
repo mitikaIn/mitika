@@ -1,6 +1,7 @@
-import { Database, DatabaseEvent } from "@/database/database";
+import { Database } from "@/database/database";
 import { useLogger } from "@/logging";
-import { type Object, ObjectType, type Item, type Book } from "@/models";
+import { type Book, type Item, type Object } from "@/models";
+import { type Key } from "@/models/settings";
 
 const { f, debug } = useLogger("indexedDb");
 
@@ -56,11 +57,14 @@ function upgrade(database: IDBDatabase, oldVersion: number) {
 
   for (let version = oldVersion + 1; version <= DATABASE_VERSION; version++) {
     debug(f`Upgrading to v${version}`);
-    upgradations[`v${version}`](database);
+    const upgradation = upgradations[`v${version}`];
+    if (!upgradation) throw Error(`Unknown version: ${version}`);
+    upgradation(database);
   }
 }
 
 export class IndexedDb extends Database {
+  override id = "indexedDb";
   private database: IDBDatabase | null = null;
 
   async open() {
@@ -140,35 +144,23 @@ export class IndexedDb extends Database {
 
   async putObject(object: Object) {
     await this.put(object, "objects");
-
-    if (object.type == ObjectType.Mark) this.emit(DatabaseEvent.Marks, null);
-    else if (object.type == ObjectType.Note) this.emit(DatabaseEvent.Notes, null);
-    else this.emit(DatabaseEvent.Objects, null);
   }
 
-  async getObject(id: string): Promise<Object> {
+  async getObject<T extends Object>(id: string): Promise<T> {
     return this.get(id, "objects");
   }
 
-  async getObjects(itemId: string | null, type: ObjectType | null): Promise<Object[]> {
-    const objects: Object[] = await this.getAll("objects", itemId);
-    return objects
-      .filter((o) => (type != null ? o.type == type : true))
-      .sort((a, b) => a.position.value - b.position.value);
+  async getObjects<T extends Object>(itemId: string | null, type: string | null): Promise<T[]> {
+    const objects: T[] = await this.getAll("objects", itemId);
+    return objects.filter((o) => (type != null ? o.type == type : true));
   }
 
   async delObject(object: Object) {
     await this.del(object, "objects");
-
-    if (object.type == ObjectType.Mark) this.emit(DatabaseEvent.Marks, null);
-    else if (object.type == ObjectType.Note) this.emit(DatabaseEvent.Notes, null);
-    else this.emit(DatabaseEvent.Objects, null);
   }
 
   async putItem(item: Item) {
     await this.put(item, "items");
-
-    this.emit(DatabaseEvent.Items, null);
   }
 
   async getItem(id: string): Promise<Item> {
@@ -198,8 +190,6 @@ export class IndexedDb extends Database {
     const items = transaction.objectStore("items");
     items.delete(item.id!);
     await promisifyTransaction(transaction);
-
-    this.emit(DatabaseEvent.Items, null);
   }
 
   async updateItems(parentId: string, newItems: Item[], oldItems: Item[], delItems: Item[]) {
@@ -238,14 +228,10 @@ export class IndexedDb extends Database {
     }
 
     await promisifyTransaction(transaction);
-
-    this.emit(DatabaseEvent.Items, null);
   }
 
   async putBook(book: Book) {
     await this.put(book, "books");
-
-    this.emit(DatabaseEvent.Books, null);
   }
 
   async getBook(id: string): Promise<Book> {
@@ -283,11 +269,9 @@ export class IndexedDb extends Database {
     const books = transaction.objectStore("books");
     books.delete(book.id!);
     await promisifyTransaction(transaction);
-
-    this.emit(DatabaseEvent.Books, null);
   }
 
-  async getProperty(key: string, fallback: any): Promise<any> {
+  async getProperty<T>(key: Key, fallback: T): Promise<T> {
     debug(`Getting key: ${key}`);
     const transaction = this.database!.transaction("settings", "readonly");
     const store = transaction.objectStore("settings");
@@ -297,7 +281,7 @@ export class IndexedDb extends Database {
     return fallback;
   }
 
-  async setProperty(key: string, value: any): Promise<void> {
+  async setProperty<T>(key: Key, value: T): Promise<void> {
     debug(f`Setting key: ${key} to value: ${value}`);
     const transaction = this.database!.transaction("settings", "readwrite");
     const store = transaction.objectStore("settings");

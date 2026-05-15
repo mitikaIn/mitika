@@ -1,7 +1,6 @@
 {
-  "plugins": ["prettier-plugin-tailwindcss"],
-  "printWidth": 100,
-  "singleAttributePerLine": true,
+  "importOrderSeparation": true,
+  "importOrderSortSpecifiers": true,
   "overrides": [
     {
       "files": "i18n/locales/*.ts",
@@ -9,5 +8,8 @@
         "quoteProps": "consistent"
       }
     }
-  ]
+  ],
+  "plugins": ["@trivago/prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"],
+  "printWidth": 100,
+  "singleAttributePerLine": true
 }

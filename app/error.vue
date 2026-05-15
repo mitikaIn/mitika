@@ -15,15 +15,15 @@
       <textarea class="textarea max-h-[25vh] w-full font-mono">
         {{ error }}
       </textarea>
-      <div class="flex flex-col items-center gap-4">
+      <div class="flex flex-col items-center gap-4 @lg:flex-row">
         <NuxtLink
-          class="btn btn-primary w-full @lg:w-64"
+          class="btn btn-primary w-full @lg:shrink @lg:grow @lg:basis-0"
           to="/"
         >
           Restart
         </NuxtLink>
         <NuxtLink
-          class="btn btn-secondary w-full @lg:w-64"
+          class="btn btn-secondary w-full @lg:shrink @lg:grow @lg:basis-0"
           to="/logs"
         >
           Logs

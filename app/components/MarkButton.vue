@@ -1,75 +1,45 @@
 <template>
-  <label :class="{ 'btn btn-ghost': button }">
-    <input
-      :class="{ hidden: button }"
-      class="checkbox"
-      type="checkbox"
-      @change="onChange"
+  <MenuItem
+    :label="mark ? $t('Remove mark') : $t('Mark')"
+    @click="onClick"
+  >
+    <PhBookmarkSimple
+      :weight="mark == null ? 'regular' : 'fill'"
+      class="size-6"
     />
-    <BookmarkIcon
-      v-show="button"
-      class="size-4"
-      :class="{ 'fill-current': mark != null }"
-    />
-    <span :class="{ hidden: button }">
-      {{ $t("Mark") }}
-    </span>
-  </label>
+  </MenuItem>
 </template>
 <script setup lang="ts">
-import { DatabaseEvent, useDatabase } from "@/database";
-import { type Item, type Mark, createMark, ObjectType } from "@/models";
-import { QUERY_POSITION_NAME } from "@/components/keys";
+import { PhBookmarkSimple } from "@phosphor-icons/vue";
+import { FORMAT_POSITION } from "@/keys";
+import { useDatabase } from "@/database";
+import { type Item, collatePosition } from "@/models/item";
+import { type Mark, newMark } from "@/models/object";
 
-const { t } = useI18n();
+const emit = defineEmits<{ refresh: [] }>();
 
-const queryPositionName = inject<(position: any) => string>(QUERY_POSITION_NAME);
+const { item, marks } = defineProps<{ item: Item; marks: Mark[] }>();
 
-interface Props {
-  item: Item;
-  button: boolean;
-}
-
-const { item } = defineProps<Props>();
+const formatPosition = inject(FORMAT_POSITION);
 
 const database = await useDatabase();
+const { t } = useI18n();
 
-const marks: Ref<Mark[]> = ref([]);
-
-const mark = computed(() => {
-  return marks.value.find((mark) => mark.position.value == item.position.value);
-});
-
-async function onChange() {
-  if (mark.value) {
-    await database.delObject(toValue(mark)!);
-    return;
-  }
-
-  const newMark = createMark(
-    item.id,
-    toRaw(item.position),
-    t("On {position}", { position: queryPositionName!(item.position) }),
-  );
-  await database.putObject(newMark);
-}
-
-async function onMarksChanged() {
-  marks.value = (await database.getObjects(item.id, ObjectType.Mark)) as Mark[];
-}
-
-watch(
-  () => item,
-  async () => {
-    await onMarksChanged();
-  },
+const mark = computed(() =>
+  marks.find((mark) => collatePosition(mark.position, item.position) == 0),
 );
 
-onMounted(() => {
-  database.addEventListener(DatabaseEvent.Marks, onMarksChanged);
-});
-
-onUnmounted(() => {
-  database.removeEventListener(DatabaseEvent.Marks, onMarksChanged);
-});
+async function onClick() {
+  if (mark.value) {
+    await database.delObject(toRaw(mark.value));
+  } else {
+    const mark = newMark(
+      item.id,
+      toRaw(item.position),
+      t("On {position}", { position: formatPosition!(item.position) }),
+    );
+    await database.putObject(mark);
+  }
+  emit("refresh");
+}
 </script>

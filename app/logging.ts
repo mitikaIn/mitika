@@ -22,7 +22,8 @@ interface Log {
 }
 
 const MAXIMUM_LOGS = 1024;
-const LOGS: Log[] = [];
+
+const LOGS = ref<Log[]>([]);
 
 function f(texts: TemplateStringsArray, ...args: any[]): string {
   const splits = [];
@@ -61,8 +62,8 @@ function log(level: Level, domain: string, message: string) {
       throw new Error(`Unknown level: ${level}`);
   }
 
-  LOGS.push({ level, domain, message });
-  while (LOGS.length > MAXIMUM_LOGS) LOGS.pop();
+  LOGS.value.push({ level, domain, message });
+  while (LOGS.value.length > MAXIMUM_LOGS) LOGS.value.pop();
 }
 
 export function useLogger(domain: string): Logger {
@@ -75,6 +76,6 @@ export function useLogger(domain: string): Logger {
   };
 }
 
-export function useLogs(): Log[] {
+export function useLogs(): Ref<Log[]> {
   return LOGS;
 }

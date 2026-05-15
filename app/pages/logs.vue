@@ -9,14 +9,13 @@
       </button>
       <TitleBar
         class="grow"
-        subtitle=""
         :title="$t('Logs')"
       />
       <button
         class="btn btn-ghost"
         @click="onDownloadClick"
       >
-        <DownloadIcon class="size-4" />
+        <PhDownloadSimple class="size-6" />
       </button>
     </header>
     <main class="flex grow flex-col gap-4">
@@ -28,122 +27,117 @@
       <div class="flex flex-row flex-wrap gap-4">
         <label class="flex flex-row items-center gap-2">
           <input
-            type="checkbox"
-            :checked="levels.has(Level.Debug)"
+            v-model="selectedLevels"
             class="checkbox checkbox-info"
-            @change="onLevelChange(Level.Debug)"
+            type="checkbox"
+            :value="Level.Debug"
           />
-          Debug
+          {{ $t("Debug") }}
         </label>
         <label class="flex flex-row items-center gap-2">
           <input
-            type="checkbox"
-            :checked="levels.has(Level.Info)"
+            v-model="selectedLevels"
             class="checkbox checkbox-success"
-            @change="onLevelChange(Level.Info)"
+            type="checkbox"
+            :value="Level.Info"
           />
-          Info
+          {{ $t("Info") }}
         </label>
         <label class="flex flex-row items-center gap-2">
           <input
-            type="checkbox"
-            :checked="levels.has(Level.Warn)"
+            v-model="selectedLevels"
             class="checkbox checkbox-warning"
-            @change="onLevelChange(Level.Warn)"
+            type="checkbox"
+            :value="Level.Warn"
           />
-          Warn
+          {{ $t("Warn") }}
         </label>
         <label class="flex flex-row items-center gap-2">
           <input
-            type="checkbox"
-            :checked="levels.has(Level.Error)"
+            v-model="selectedLevels"
             class="checkbox checkbox-error"
-            @change="onLevelChange(Level.Error)"
+            type="checkbox"
+            :value="Level.Error"
           />
-          Error
+          {{ $t("Error") }}
         </label>
       </div>
-      <Dropdown
-        v-if="allDomains.size != 0"
-        buttonClass=""
-        dropdownClass=""
-        popoverId="logsPo"
-      >
-        <template #button> Domains</template>
-        <template #content>
-          <ul class="menu bg-base-100 max-h-[75vh] w-64 overflow-scroll rounded-sm shadow-sm">
-            <li
-              v-for="domain of allDomains"
-              :key="domain"
-            >
-              <label class="label">
-                <input
-                  type="checkbox"
-                  :checked="domains.has(domain)"
-                  class="checkbox"
-                  @change="onDomainChange(domain)"
-                />
-                <span class="font-mono">{{ domain }}</span>
-              </label>
-            </li>
-          </ul>
-        </template>
-      </Dropdown>
-      <div class="flex grow flex-row">
-        <div class="w-0 grow overflow-scroll">
-          <table class="table-zebra table-pin-rows table">
-            <thead>
-              <tr>
-                <th>
-                  {{ $t("Level") }}
-                </th>
-                <th>
-                  {{ $t("Domain") }}
-                </th>
-                <th>
-                  {{ $t("Message") }}
-                </th>
+      <ol class="flex flex-row flex-wrap gap-2 empty:hidden">
+        <li v-for="domain of domains">
+          <input
+            v-model="selectedDomains"
+            :aria-label="domain"
+            class="btn"
+            type="checkbox"
+            :value="domain"
+          />
+        </li>
+      </ol>
+      <div class="flex flex-col overflow-scroll">
+        <table class="table-zebra table-pin-rows table h-full">
+          <thead>
+            <tr>
+              <th>
+                {{ $t("Level") }}
+              </th>
+              <th>
+                {{ $t("Domain") }}
+              </th>
+              <th>
+                {{ $t("Message") }}
+              </th>
+            </tr>
+          </thead>
+          <tbody
+            v-auto-animte
+            class="font-mono"
+          >
+            <template v-if="reversedLogs.length != 0">
+              <tr v-for="log in reversedLogs">
+                <td>{{ log.level }}</td>
+                <td>{{ log.domain }}</td>
+                <td>{{ log.message }}</td>
               </tr>
-            </thead>
-            <tbody class="font-mono">
-              <template v-if="filteredLogs.length != 0">
-                <tr v-for="log in filteredLogs">
-                  <td>{{ log.level }}</td>
-                  <td>{{ log.domain }}</td>
-                  <td>{{ log.message }}</td>
-                </tr>
-              </template>
-              <tr v-else-if="logs.length != 0">
-                <td>-</td>
-                <td>-</td>
-                <td>{{ $t("Logs are empty. Try relaxing the filters.") }}</td>
-              </tr>
-              <tr v-else>
-                <td>-</td>
-                <td>-</td>
-                <td>{{ $t("Logs are empty.") }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+            </template>
+            <tr v-else>
+              <td>-</td>
+              <td>-</td>
+              <td>
+                {{
+                  $t(
+                    logs.length != 0
+                      ? "Logs are empty. Try relaxing the filters."
+                      : "Logs are empty.",
+                  )
+                }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </main>
   </div>
 </template>
 <script setup lang="ts">
+import { PhDownloadSimple } from "@phosphor-icons/vue";
 import { Constants } from "@/constants";
-import { useLogs, Level } from "@/logging";
+import { Level, useLogs } from "@/logging";
 
+const logs = useLogs();
 const router = useRouter();
 
-const logs = ref(useLogs());
-const allDomains = ref(new Set(logs.value.map((log) => log.domain).sort()));
+const domains = ref(new Set(logs.value.map((log) => log.domain).sort()));
 const levels = ref(new Set([Level.Debug, Level.Info, Level.Warn, Level.Error]));
+const selectedDomains = ref(new Set(domains.value));
+const selectedLevels = ref(new Set(levels.value));
 
-const domains = ref(new Set(allDomains.value));
 const filteredLogs = computed(() => {
-  return logs.value.filter((log) => levels.value.has(log.level) && domains.value.has(log.domain));
+  return logs.value.filter(
+    (log) => selectedLevels.value.has(log.level) && selectedDomains.value.has(log.domain),
+  );
 });
+
+const reversedLogs = computed(() => filteredLogs.value.reverse());
 
 function onBackClick() {
   router.back();
@@ -157,16 +151,6 @@ function onDownloadClick() {
   a.href = url;
   a.download = `${Constants.NAME}_logs.json`;
   a.click();
-}
-
-function onLevelChange(level: Level) {
-  if (levels.value.has(level)) levels.value.delete(level);
-  else levels.value.add(level);
-}
-
-function onDomainChange(domain: string) {
-  if (domains.value.has(domain)) domains.value.delete(domain);
-  else domains.value.add(domain);
 }
 
 useHead({

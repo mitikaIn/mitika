@@ -1,10 +1,10 @@
 <template>
   <dialog
-    ref="dialog"
     class="modal @container"
+    ref="dialog"
   >
     <div
-      :class="styleClass"
+      :class="className"
       class="modal-box"
     >
       <slot />
@@ -12,20 +12,18 @@
   </dialog>
 </template>
 <script setup lang="ts">
-interface Props {
-  styleClass?: string;
-}
-
-defineProps<Props>();
+const { className = "" } = defineProps<{
+  className?: string;
+}>();
 
 const dialog = useTemplateRef("dialog");
 
-function isShown(): boolean {
-  return dialog.value!.open;
-}
-
 function hide() {
   dialog.value!.close();
+}
+
+function isShown(): boolean {
+  return dialog.value!.open;
 }
 
 function show() {
@@ -38,8 +36,8 @@ function toggle() {
 }
 
 defineExpose({
-  isShown,
   hide,
+  isShown,
   show,
   toggle,
 });

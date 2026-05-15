@@ -1,0 +1,56 @@
+export enum Key {
+  BooksSort = "booksSort",
+  BooksView = "booksDisplay",
+  ThemeDark = "themeDark",
+  ThemeLight = "themeLight",
+}
+
+export enum BooksSortType {
+  Alphabetical = "alphabetical",
+  RecentFirst = "recentFirst",
+  RecentLast = "recentLast",
+  ReverseAlphabetical = "reverseAlphabetical",
+}
+
+export enum BooksViewType {
+  Card = "card",
+  Row = "row",
+}
+
+export enum Theme {
+  Abyss = "abyss",
+  Acid = "acid",
+  Aqua = "aqua",
+  Autumn = "autumn",
+  Black = "black",
+  Bumblebee = "bumblebee",
+  Business = "business",
+  Caramellatte = "caramellatte",
+  Cmyk = "cmyk",
+  Coffee = "coffee",
+  Corporate = "corporate",
+  Cupcake = "cupcake",
+  Cyberpunk = "cyberpunk",
+  Dark = "dark",
+  Dim = "dim",
+  Dracula = "dracula",
+  Emerald = "emerald",
+  Fantasy = "fantasy",
+  Forest = "forest",
+  Garden = "garden",
+  Halloween = "halloween",
+  Lemonade = "lemonade",
+  Light = "light",
+  Lofi = "lofi",
+  Luxury = "luxury",
+  Night = "night",
+  Nord = "nord",
+  Pastel = "pastel",
+  Retro = "retro",
+  Silk = "silk",
+  Sunset = "sunset",
+  Synthwave = "synthwave",
+  Valentine = "valentine",
+  Winter = "winter",
+  Wireframe = "wireframe",
+}

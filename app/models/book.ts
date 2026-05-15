@@ -2,26 +2,24 @@ export interface Book {
   id: string;
   name: string;
   authors: string[];
-  lastAudiobookId: string | null;
-  lastEbookId: string | null;
-  openAudiobook: boolean;
-  openEbook: boolean;
-  focus: boolean;
+  tags: Set<string>;
   lastOpened: Date;
-  tags: string[];
+  focus: boolean;
+  openingFirstTime: boolean;
+  lastAudioId: string | null;
+  lastPdfId: string | null;
 }
 
-export function createBook(name: string): Book {
+export function newBook(name: string): Book {
   return {
     id: window.crypto.randomUUID(),
     name,
     authors: [],
-    lastAudiobookId: null,
-    lastEbookId: null,
-    openAudiobook: true,
-    openEbook: true,
-    focus: false,
+    tags: new Set(),
     lastOpened: new Date(),
-    tags: [],
+    focus: false,
+    openingFirstTime: true,
+    lastAudioId: null,
+    lastPdfId: null,
   };
 }

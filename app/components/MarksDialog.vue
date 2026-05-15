@@ -1,116 +1,89 @@
 <template>
   <Dialog
+    className="w-[90vw] max-w-2xl"
     ref="dialog"
-    styleClass="@2xl:w-2xl max-w-none"
   >
     <div class="flex h-[75vh] flex-col gap-4">
-      <div class="flex flex-row gap-4">
+      <div class="flex flex-row gap-2">
+        <button class="btn invisible">
+          <PhX class="size-6" />
+        </button>
         <TitleBar
           class="grow"
-          subtitle=""
           :title="$t('Marks')"
         />
         <button
           class="btn btn-ghost"
           @click="dialog!.hide()"
         >
-          <XIcon class="size-4" />
+          <PhX class="size-6" />
         </button>
       </div>
       <input
-        v-model="search"
+        v-model="needle"
         class="input w-full"
-        :placeholder="$t('Search…')"
+        :placeholder="$t('Search marks…')"
       />
-      <div class="flex h-0 grow flex-col overflow-scroll">
-        <ol class="list peer">
-          <MarksDialogRow
-            v-for="mark in filteredMarks"
-            :key="mark.id"
-            :mark="mark"
-            @click="onClick(mark)"
-            @remove="onRemove(mark)"
-            @edit="onEdit(mark)"
-          />
-        </ol>
-        <Status
-          class="m-auto hidden peer-empty:flex"
-          :description="$t(emptyStateDescription)"
-          :title="$t('No marks found')"
-          :type="StatusType.Info"
+      <ol
+        v-auto-animate
+        class="list peer h-0 grow overflow-y-scroll"
+      >
+        <MarksDialogRow
+          v-for="mark in filteredMarks"
+          :mark="mark"
+          @change="(name: string) => onChange(mark, name)"
+          @open="onOpen(mark)"
+          @remove="onRemove(mark)"
         />
-      </div>
+      </ol>
+      <Placeholder
+        class="hidden h-full peer-empty:flex"
+        :description="$t(needle ? 'No matching mark exists.' : 'Add a mark to display it here.')"
+        :title="$t('No marks found')"
+        :type="PlaceholderType.Info"
+      />
     </div>
   </Dialog>
 </template>
 <script setup lang="ts">
-import { StatusType } from "@/components/statusType";
-import { type Database, DatabaseEvent, useDatabase } from "@/database";
-import { type Item, type Mark, ObjectType } from "@/models";
+import { PhX } from "@phosphor-icons/vue";
+import { PlaceholderType } from "@/components/Placeholder.vue";
+import { useDatabase } from "@/database";
+import { type Item, collatePosition } from "@/models/item";
+import { type Mark } from "@/models/object";
 
-interface Props {
-  item: Item;
-}
+const emit = defineEmits<{ open: [mark: Mark]; refresh: [] }>();
 
-interface Emits {
-  openMark: [mark: Mark];
-}
+const { marks } = defineProps<{ marks: Mark[] }>();
 
-const { item } = defineProps<Props>();
-const emit = defineEmits<Emits>();
-
-let database: Database | null;
-
+const needle = ref("");
 const dialog = useTemplateRef("dialog");
-const marks: Ref<Mark[]> = ref([]);
-const search = ref("");
 
-const emptyStateDescription = computed(() =>
-  search.value.length == 0 ? "Add a mark to display it here." : "No matching mark exists.",
+const filteredMarks = computed(() =>
+  marks.filter((mark) => mark.name.toLowerCase().includes(needle.value.toLowerCase())),
 );
-
-const filteredMarks = computed(() => {
-  return marks.value.filter((mark) => mark.name.toLowerCase().includes(search.value.toLowerCase()));
-});
-
-function onClick(mark: Mark) {
-  emit("openMark", mark);
-  dialog.value!.hide();
-}
-
-async function onEdit(mark: Mark) {
-  await database!.putObject(toRaw(mark));
-}
-
-async function onRemove(mark: Mark) {
-  await database!.delObject(toRaw(mark));
-}
-
-async function onMarksChanged() {
-  marks.value = (await database!.getObjects(item.id, ObjectType.Mark)) as Mark[];
-}
 
 function toggle() {
   dialog.value!.toggle();
 }
 
+async function onChange(mark: Mark, name: string) {
+  mark.name = name;
+  const database = await useDatabase();
+  await database.putObject(toRaw(mark));
+  emit("refresh");
+}
+
+async function onOpen(mark: Mark) {
+  emit("open", mark);
+  dialog.value!.hide();
+}
+
+async function onRemove(mark: Mark) {
+  const database = await useDatabase();
+  await database.delObject(toRaw(mark));
+  emit("refresh");
+}
+
 defineExpose({ toggle });
-
-database = await useDatabase();
-
-watch(
-  () => item,
-  async () => {
-    await onMarksChanged();
-  },
-  { immediate: true },
-);
-
-onMounted(() => {
-  database!.addEventListener(DatabaseEvent.Marks, onMarksChanged);
-});
-
-onUnmounted(() => {
-  database!.removeEventListener(DatabaseEvent.Marks, onMarksChanged);
-});
 </script>
