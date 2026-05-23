@@ -25,7 +25,7 @@
       <Menu
         :btnSize="4"
         class="justify-end gap-2"
-        dropdownClassName="dropdown-end"
+        dropdownClasses="dropdown-end"
         :gap="2"
       >
         <MenuItem

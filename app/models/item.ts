@@ -25,4 +25,5 @@ export interface Item {
   file: File;
   position: Position;
   openingFirstTime: boolean;
+  temporaryName: boolean;
 }

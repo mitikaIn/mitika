@@ -19,8 +19,16 @@
       {{ item.file.name }}
     </p>
     <button
+      v-if="open"
       class="btn btn-ghost"
-      @click="$emit('click')"
+      @click="$emit('close')"
+    >
+      <PhX class="size-6" />
+    </button>
+    <button
+      v-else
+      class="btn btn-ghost"
+      @click="$emit('open')"
     >
       <PhPlay
         v-if="item.type == ItemType.Audio"
@@ -38,11 +46,11 @@
   </li>
 </template>
 <script setup lang="ts">
-import { PhFileText, PhMusicNotes, PhPlay, PhBookOpen } from "@phosphor-icons/vue";
+import { PhX, PhFileText, PhMusicNotes, PhPlay, PhBookOpen } from "@phosphor-icons/vue";
 
 import { type Item, ItemType } from "@/models";
 
-defineEmits<{ click: [] }>();
+defineEmits<{ open: []; close: [] }>();
 
-defineProps<{ item: Item }>();
+defineProps<{ item: Item; open: boolean }>();
 </script>

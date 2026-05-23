@@ -12,13 +12,13 @@
         <span class="line-clamp-2 w-full font-bold break-words">
           {{ book.name }}
         </span>
-        <span class="w-full italic">
+        <span class="line-clamp-2 w-full break-words italic">
           {{ book.authors.length == 0 ? "Unknown" : book.authors.join(", ") }}
         </span>
       </button>
       <Dropdown
-        buttonClassName="btn-ghost"
-        dropdownClassName="dropdown-end"
+        buttonClasses="btn-ghost"
+        dropdownClasses="dropdown-end"
       >
         <template #button>
           <PhDotsThreeVertical class="size-6" />

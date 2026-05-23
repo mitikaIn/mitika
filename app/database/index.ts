@@ -1,8 +1,8 @@
 import { type Database } from "@/database/database";
 import { IndexedDb } from "@/database/indexedDb";
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 
-const { debug } = useLogger("database");
+const { debug } = useLogging("database");
 
 let database: Database;
 

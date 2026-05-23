@@ -1,6 +1,6 @@
 /// <reference types="wicg-file-system-access" />
 import { type Filter, extensionToMimeType, mimeTypeToExtension } from "@/components/Sources/common";
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 import { type File as ModelFile } from "@/models";
 import { splitBaseName } from "@/utils";
 
@@ -9,7 +9,7 @@ export interface LocalFile extends ModelFile {
   handle: FileSystemFileHandle;
 }
 
-const { debug } = useLogger("local");
+const { debug } = useLogging("local");
 
 const FSA_ID = "fsa";
 const OPFS_ID = "opfs";

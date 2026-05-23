@@ -26,6 +26,7 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
     optimizeDeps: {
       exclude: ["mupdf"],
+      include: ["@mitikaIn/parkhi", "@mitikaIn/parkhi/logging", "@phosphor-icons/vue"],
     },
     worker: {
       format: "es",

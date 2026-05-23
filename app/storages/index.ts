@@ -1,8 +1,9 @@
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 import { Opfs } from "@/storages/opfs";
+import { type Resource, ResourceType } from "@/storages/resource";
 import { type Storage } from "@/storages/storage";
 
-const { debug } = useLogger("storage");
+const { debug } = useLogging("storage");
 
 let storage: Storage;
 
@@ -16,4 +17,4 @@ export async function useStorage(): Promise<Storage> {
   return storage;
 }
 
-export { type Storage };
+export { ResourceType, type Storage, type Resource };

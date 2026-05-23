@@ -1,22 +1,34 @@
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
+import { type Resource, ResourceType } from "@/storages/resource";
 import { type Storage } from "@/storages/storage";
 
-const { debug } = useLogger("opfs");
+const { debug } = useLogging("opfs");
+
+function split(path: string): { segments: string[]; fileName: string } {
+  if (!path.startsWith("/") || path.endsWith("/")) throw new Error(`Invalid path: ${path}`);
+
+  let segments = path.split("/");
+  segments.shift();
+
+  const fileName = segments.pop();
+  if (!fileName) throw new Error(`Invalid path: ${path}`);
+
+  return { segments, fileName };
+}
+
+export function resourceToPath(resource: Resource): string {
+  const { parentId, type } = resource;
+
+  if (type == ResourceType.BookAll) return `/books/${parentId}`;
+  else if (type == ResourceType.BookCover) return `/books/${parentId}/cover`;
+  else if (type == ResourceType.ItemAll) return `/items/${parentId}`;
+  else if (type == ResourceType.ItemCover) return `/items/${parentId}/cover`;
+  else if (type == ResourceType.ItemOutlines) return `/items/${parentId}/outlines.json`;
+  else throw new Error(`unknown type ${type}`);
+}
 
 export class Opfs implements Storage {
   id = "opfs";
-
-  private split(path: string): { segments: string[]; fileName: string } {
-    if (!path.startsWith("/") || path.endsWith("/")) throw new Error(`Invalid path: ${path}`);
-
-    let segments = path.split("/");
-    segments.shift();
-
-    const fileName = segments.pop();
-    if (!fileName) throw new Error(`Invalid path: ${path}`);
-
-    return { segments, fileName };
-  }
 
   private async getDirectory(
     segments: string[],
@@ -27,8 +39,9 @@ export class Opfs implements Storage {
     return dir;
   }
 
-  async read(path: string): Promise<Blob | null> {
-    const { segments, fileName } = this.split(path);
+  async read(resource: Resource): Promise<Blob | null> {
+    const path = resourceToPath(resource);
+    const { segments, fileName } = split(path);
     debug(`Reading ${fileName}`);
 
     let directory;
@@ -41,7 +54,8 @@ export class Opfs implements Storage {
     let handle;
     try {
       handle = await directory.getFileHandle(fileName);
-    } catch {
+    } catch (e) {
+      debug(`failed to read ${fileName} due to ${e}`);
       return null;
     }
 
@@ -51,24 +65,28 @@ export class Opfs implements Storage {
     return blob;
   }
 
-  async write(path: string, blob: Blob) {
-    const { segments, fileName } = this.split(path);
+  async write(resource: Resource, blob: Blob) {
+    const path = resourceToPath(resource);
+    const { segments, fileName } = split(path);
     debug(`Writing ${fileName}`);
+
     const directory = await this.getDirectory(segments, true);
     const handle = await directory.getFileHandle(fileName, { create: true });
     const stream = await handle.createWritable();
     await stream.write(blob);
     await stream.close();
+
     debug(`Wrote ${fileName}`);
   }
 
-  async remove(path: string): Promise<void> {
-    const { segments, fileName } = this.split(path);
+  async remove(resource: Resource) {
+    const path = resourceToPath(resource);
+    const { segments, fileName } = split(path);
     debug(`Removing ${fileName}`);
 
     try {
       const directory = await this.getDirectory(segments);
-      await directory.removeEntry(fileName);
+      await directory.removeEntry(fileName, { recursive: true });
     } catch {}
 
     debug(`Removed ${fileName}`);

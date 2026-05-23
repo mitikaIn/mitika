@@ -65,9 +65,10 @@ import { type AudioPosition } from "@/models/audio";
 
 const emit = defineEmits<{ change: [position: AudioPosition, play: boolean] }>();
 
-const { position, duration } = defineProps<{
+const { position, duration, playing } = defineProps<{
   position: AudioPosition;
   duration: number;
+  playing: boolean;
 }>();
 
 const hours = ref(0);
@@ -86,6 +87,9 @@ function toggle() {
   minutes.value = Math.floor(delta / 60);
   delta = delta % 60;
   seconds.value = Math.floor(delta);
+
+  pause.value = !playing;
+
   dialog.value!.toggle();
 }
 

@@ -67,7 +67,7 @@
       </button>
       <label class="join-item swap swap-rotate btn btn-ghost">
         <input
-          :checked="playing"
+          v-model="playing"
           type="checkbox"
           @change="onPlayingChange"
         />
@@ -93,7 +93,7 @@
       v-if="!focus"
       :btnSize="4"
       class="grow justify-center gap-2"
-      dropdownClassName="dropdown-top"
+      dropdownClasses="dropdown-top"
       :gap="2"
     >
       <MenuItem
@@ -102,7 +102,10 @@
       >
         <PhTarget class="size-6" />
       </MenuItem>
-      <MenuItem :label="$t('Outlines')">
+      <MenuItem
+        :label="$t('Outlines')"
+        @click="outlinesDialog!.toggle()"
+      >
         <PhListNumbers class="size-6" />
       </MenuItem>
       <MenuItem
@@ -153,7 +156,8 @@
     />
     <AudioGoToPositionDialog
       :duration="duration"
-      :position="audio.position"
+      :position="[0]"
+      :playing="playing"
       ref="goToDialog"
       @change="onSeek"
     />
@@ -178,6 +182,11 @@
       @open="onOpen"
       @refresh="onRefreshNotes"
     />
+    <OutlinesDialog
+      :outlines="outlines"
+      ref="outlinesDialog"
+      @open="onOpen"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -196,30 +205,43 @@ import {
 } from "@phosphor-icons/vue";
 import { FORMAT_POSITION, SOURCES_DIALOG, type FormatPositionFn } from "@/keys";
 import { useDatabase } from "@/database";
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 import { type Audio, type AudioPosition } from "@/models/audio";
 import { collatePosition } from "@/models/item";
 import { type Mark, type Note, ObjectType } from "@/models/object";
+import { getMetadata } from "@/components/Audio/parkhi";
+import { type Outline } from "@/components/OutlinesDialogRow.vue";
+import { toCover } from "@/utils";
+import { useStorage, ResourceType } from "@/storages";
 
-defineEmits<{ close: [] }>();
+const emit = defineEmits<{
+  close: [];
+  metadata: [name: string | null, authors: string[], cover: Blob | null];
+}>();
 
 const { audio, focus } = defineProps<{ audio: Audio; focus: boolean }>();
 
 const database = await useDatabase();
-const { f, debug, error } = useLogger("audioPlayer");
+const { f, debug, error } = useLogging("audioPlayer");
+const storage = await useStorage();
 
 const PLACEHOLDER_AUDIO = "/placeholder.opus";
+const SAVE_INTERVAL = 2000;
 
 const duration = ref(1);
 const marks = ref<Mark[]>([]);
 const notes = ref<Note[]>([]);
+const outlines = ref<Outline[]>([]);
 const playing = ref(false);
 const url = ref(PLACEHOLDER_AUDIO);
+
+let saveIntervalId = 0;
 
 const audioEl = useTemplateRef("audioEl");
 const marksDialog = useTemplateRef("marksDialog");
 const noteDialog = useTemplateRef("noteDialog");
 const notesDialog = useTemplateRef("notesDialog");
+const outlinesDialog = useTemplateRef("outlinesDialog");
 const rateDialog = useTemplateRef("rateDialog");
 const goToDialog = useTemplateRef("goToDialog");
 const volumeDialog = useTemplateRef("volumeDialog");
@@ -237,65 +259,119 @@ watch(
   { immediate: true },
 );
 
-async function close(audio: Audio) {
-  const oldUrl = url.value;
-  url.value = PLACEHOLDER_AUDIO;
-  URL.revokeObjectURL(oldUrl);
-}
-
-function formatPosition(position: AudioPosition): string {
-  let [delta] = position;
-  const hours = Math.floor(delta / 3600);
-  delta = delta % 3600;
-  const minutes = Math.floor(delta / 60);
-  delta = delta % 60;
-  const seconds = Math.floor(delta);
-
-  const hoursStr = hours.toString().padStart(hoursLength.value, "0");
-  const minsStr = minutes.toString().padStart(2, "0");
-  const secsStr = seconds.toString().padStart(2, "0");
-
-  return `${hoursStr}:${minsStr}:${secsStr}`;
-}
-
-async function open(audio: Audio) {
-  const blob = await sourcesDialog.value!.readFile(audio.file);
-  url.value = URL.createObjectURL(blob);
-  audioEl.value!.currentTime = audio.position[0];
-  await onRefreshMarks();
-  await onRefreshNotes();
+function clearSaveInterval() {
+  if (saveIntervalId != 0) {
+    debug("clearing save timeout");
+    clearInterval(saveIntervalId);
+    saveIntervalId = 0;
+  }
 }
 
 function onDurationChange() {
+  debug(`found duration, restoring position`);
   duration.value = audioEl.value!.duration;
+  audioEl.value!.currentTime = audio.position[0];
+}
+
+async function close(audio: Audio) {
+  debug(f`closing audio ${audio}`);
+
+  duration.value = 0;
+  const oldUrl = url.value;
+  url.value = PLACEHOLDER_AUDIO;
+  URL.revokeObjectURL(oldUrl);
+
+  clearSaveInterval();
+}
+
+async function open(audio: Audio) {
+  debug(f`opening audio ${audio}`);
+
+  const blob = await sourcesDialog.value!.readFile(audio.file);
+  url.value = URL.createObjectURL(blob);
+
+  if (audio.openingFirstTime) {
+    debug(`obtaining metadata`);
+    const metadata = await getMetadata(blob);
+
+    if (audio.temporaryName) {
+      if (metadata.name) {
+        debug(`changing audio name to ${metadata.name}`);
+        audio.name = metadata.name;
+        audio.temporaryName = false;
+      }
+    }
+
+    let cover = null;
+    if (metadata.cover) {
+      debug(`changing item cover`);
+      cover = await toCover(metadata.cover);
+      await storage.write({ parentId: audio.id, type: ResourceType.ItemCover }, cover);
+    }
+
+    audio.openingFirstTime = false;
+    await database.putItem(toRaw(audio));
+
+    const data = new Blob([JSON.stringify(metadata.outlines)]);
+    await storage.write({ parentId: audio.id, type: ResourceType.ItemOutlines }, data);
+    outlines.value = metadata.outlines;
+
+    emit("metadata", metadata.name, metadata.authors, cover);
+  } else {
+    const data = await storage.read({ parentId: audio.id, type: ResourceType.ItemOutlines });
+    outlines.value = JSON.parse(await data.text());
+  }
+
+  await onRefreshMarks();
+  await onRefreshNotes();
 }
 
 function onError() {
   error(f`Failed to play audio: ${audioEl.value!.error}`);
 }
 
-async function onOpen(object: Mark | Note) {
-  onSeek(object.position as AudioPosition);
+async function onOpen(object: Mark | Note | Outline) {
+  await onSeek(object.position as AudioPosition);
+}
+
+async function onSaveInterval() {
+  await database.putItem(toRaw(audio));
 }
 
 function onPause() {
   playing.value = false;
+
+  clearSaveInterval();
 }
 
 function onPlay() {
   playing.value = true;
+
+  clearSaveInterval();
+  saveIntervalId = setInterval(onSaveInterval, SAVE_INTERVAL);
 }
 
 function onPlayingChange() {
-  playing.value = !playing.value;
-  if (playing.value) audioEl.value!.play();
-  else audioEl.value!.pause();
+  if (playing.value) {
+    audioEl.value!.play();
+    clearSaveInterval();
+    saveIntervalId = setTimeout(onSaveInterval, SAVE_INTERVAL);
+  } else {
+    audioEl.value!.pause();
+    clearSaveInterval();
+  }
 }
 
-function onPositionChange(event: Event) {
+async function onPositionChange(event: Event) {
   const value = Number((event.target as HTMLInputElement).value);
   debug(`Changing to position: ${value}`);
   audioEl.value!.currentTime = value;
+  await database.putItem(toRaw(audio));
+}
+
+function onTimeUpdate() {
+  if (duration.value == 0) return;
+  audio.position[0] = audioEl.value!.currentTime;
 }
 
 async function onRefreshMarks() {
@@ -308,12 +384,14 @@ async function onRefreshNotes() {
   notes.value = unsorted.sort((a, b) => collatePosition(a.position, b.position));
 }
 
-function onSeek(position: AudioPosition, play: boolean | null = null) {
+async function onSeek(position: AudioPosition, play: boolean | null = null) {
   debug(`Seeking to position ${position} with play ${play}`);
-  const shouldPlay = play ?? playing.value;
+  const shouldPlay = play == null ? playing.value : play;
   audioEl.value!.pause();
   audioEl.value!.currentTime = position[0];
+  audio.value!.position = position;
   if (shouldPlay) audioEl.value!.play();
+  await database.putItem(toRaw(audio));
 }
 
 function onSkip(forward: boolean) {
@@ -336,16 +414,23 @@ function onSkip(forward: boolean) {
   }
 }
 
-function onTimeUpdate() {
-  audio.position[0] = audioEl.value!.currentTime;
+function formatPosition(position: AudioPosition): string {
+  let [delta] = position;
+  const hours = Math.floor(delta / 3600);
+  delta = delta % 3600;
+  const minutes = Math.floor(delta / 60);
+  delta = delta % 60;
+  const seconds = Math.floor(delta);
+
+  const hoursStr = hours.toString().padStart(hoursLength.value, "0");
+  const minsStr = minutes.toString().padStart(2, "0");
+  const secsStr = seconds.toString().padStart(2, "0");
+
+  return `${hoursStr}:${minsStr}:${secsStr}`;
 }
 
-onMounted(async () => {
-  await open(audio);
-});
-
 onUnmounted(async () => {
-  await close(audio);
+  if (audio.value) await close(audio.value);
 });
 
 provide(FORMAT_POSITION, formatPosition as FormatPositionFn);

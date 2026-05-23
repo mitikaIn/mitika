@@ -1,6 +1,6 @@
 <template>
   <Dialog
-    className="w-[90vw] max-w-2xl"
+    classes="w-[90vw] max-w-2xl"
     ref="dialog"
   >
     <div class="flex h-[75vh] flex-col gap-4">
@@ -23,7 +23,9 @@
         <ItemsDialogRow
           v-for="item in items"
           :item="item"
-          @click="onClick(item)"
+          :open="openItemIds.has(item.id)"
+          @open="onOpen(item)"
+          @close="onClose(item)"
         />
       </ol>
     </div>
@@ -33,9 +35,9 @@
 import { PhX } from "@phosphor-icons/vue";
 import { type Item, ItemType } from "@/models";
 
-const emit = defineEmits<{ open: [item: Item] }>();
+const emit = defineEmits<{ open: [item: Item]; close: [item: Item] }>();
 
-defineProps<{ items: Item[] }>();
+defineProps<{ items: Item[]; openItemIds: Set<string> }>();
 
 const dialog = useTemplateRef("dialog");
 
@@ -43,9 +45,13 @@ function toggle() {
   dialog.value!.toggle();
 }
 
-function onClick(item: Item) {
+function onOpen(item: Item) {
   dialog.value!.hide();
   emit("open", item);
+}
+
+function onClose(item: Item) {
+  emit("close", item);
 }
 
 defineExpose({ toggle });

@@ -22,10 +22,7 @@
         >
           <PhFolderOpen class="size-6" />
         </MenuItem>
-        <MenuItem
-          :label="$t('Focus mode')"
-          @click="onFocusClick"
-        >
+        <MenuItem :label="$t('Focus mode')">
           <PhLightning class="size-6" />
         </MenuItem>
       </Menu>
@@ -37,7 +34,7 @@
       <Menu
         :btnSize="4"
         class="basis-1/4 justify-end gap-2"
-        dropdownClassName="dropdown-end"
+        dropdownClasses="dropdown-end"
         expandDir="start"
         :gap="2"
       >
@@ -78,16 +75,17 @@
         @close="onCloseItem(pdf)"
       />
       <img
-        v-if="coverUrl && audio && !pdf"
+        v-if="audio && !pdf"
         :alt="$t('Cover image of {name}', { name: book.name })"
         class="h-0 grow object-scale-down"
-        :src="coverUrl"
+        :src="coverUrl || FALLBACK_COVER_URL"
       />
       <AudioPlayer
         v-if="audio"
         :audio="audio"
         :focus="book.focus"
         @close="onCloseItem(audio)"
+        @metadata="onMetadata"
       />
       <Placeholder
         v-if="!audio && !pdf"
@@ -102,7 +100,9 @@
     <ItemsDialog
       ref="itemsDialog"
       :items="items"
+      :openItemIds="openItemIds"
       @open="onOpenItem"
+      @close="onCloseItem"
     />
     <SourcesDialog ref="sourcesDialog" />
   </div>
@@ -120,72 +120,134 @@ import {
 import { SOURCES_DIALOG } from "@/keys";
 import { PlaceholderType } from "@/components/Placeholder.vue";
 import { useDatabase } from "@/database";
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 import { type Book, type Item, ItemType } from "@/models";
 import { type Audio } from "@/models/audio";
 import { type Pdf } from "@/models/pdf";
-import { useStorage } from "@/storages";
+import { useStorage, ResourceType } from "@/storages";
+
+const FALLBACK_COVER_URL = "/logo.webp";
 
 const database = await useDatabase();
-const { f, debug } = useLogger("open");
+const { f, debug } = useLogging("open");
 const route = useRoute();
 const storage = await useStorage();
 
-const cover = await storage.read(`/books/${route.params.id}/cover.png`);
-let coverUrl: string = "/logo.webp";
-
-const active = ref(true);
 const book = ref(await database.getBook(route.params.id as string));
 const items = ref(await database.getItems(book.value.id));
 
+const cover = ref<Blob | null>(null);
+
+const coverUrl = computed<string | null>((oldCoverUrl) => {
+  if (oldCoverUrl) URL.revokeObjectURL(oldCoverUrl);
+  if (cover.value) return URL.createObjectURL(cover.value);
+  return null;
+});
+
 const sourcesDialog = useTemplateRef("sourcesDialog");
 
-const audio = computed<Audio | null>(
-  () =>
-    items.value.find(
-      (item) =>
-        item.type == ItemType.Audio &&
-        (book.value.openingFirstTime || book.value.lastAudioId == item.id),
-    ) as Audio,
-);
-const pdf = computed<Pdf | null>(
-  () =>
-    items.value.find(
-      (item) =>
-        item.type == ItemType.Pdf &&
-        (book.value.openingFirstTime || book.value.lastPdfId == item.id),
-    ) as Pdf,
-);
+const audio = ref<Audio | null>(null);
+const pdf = ref<Pdf | null>(null);
+
+const openItemIds = computed<Set<string>>(() => {
+  const ids = new Set();
+  if (audio.value) ids.add(audio.value.id);
+  if (pdf.value) ids.add(pdf.value.id);
+  return ids;
+});
 
 const itemsDialog = useTemplateRef("itemsDialog");
 
 async function onCloseItem(item: Item) {
-  if (item.type == ItemType.Audio) book.value.lastAudioId = null;
-  else if (item.type == ItemType.Pdf) book.value.lastPdfId = null;
-  else throw new Error(`Unknown item.type: ${item.type}`);
+  if (item.type == ItemType.Audio) {
+    book.value.lastAudioId = null;
+    audio.value = null;
+  } else if (item.type == ItemType.Pdf) {
+    book.value.lastPdfId = null;
+    pdf.value = null;
+  } else {
+    throw new Error(`Unknown item.type: ${item.type}`);
+  }
+
   await database.putBook(toRaw(book.value));
 }
 
 async function onOpenItem(item: Item) {
-  if (item.type == ItemType.Audio) book.value.lastAudioId = item.id;
-  else if (item.type == ItemType.Pdf) book.value.lastPdfId = item.id;
-  else throw new Error(`Unknown item.type: ${item.type}`);
+  if (item.type == ItemType.Audio) {
+    book.value.lastAudioId = item.id;
+    audio.value = item;
+  } else if (item.type == ItemType.Pdf) {
+    book.value.lastPdfId = item.id;
+    pdf.value = item;
+  } else {
+    throw new Error(`Unknown item.type: ${item.type}`);
+  }
+
+  await database.putBook(toRaw(book.value));
+}
+
+async function onMetadata(name: string | null, authors: string[], itemCover: Blob | null) {
+  if (name && book.value.temporaryName) {
+    debug(`changing book name to ${name}`);
+    book.value.name = name;
+    book.value.temporaryName = false;
+  }
+
+  if (book.value.temporaryAuthors) {
+    const newAuthors = Array.from(new Set(authors).difference(new Set(book.value.authors)));
+    if (newAuthors.length != 0) {
+      debug(`adding new authors ${newAuthors}`);
+      book.value.authors.push(...newAuthors);
+    }
+  }
+
+  if (!cover.value && itemCover) {
+    debug(`changing book cover`);
+    await storage.write({ parentId: book.value.id, type: ResourceType.BookCover }, itemCover);
+    cover.value = itemCover;
+  }
+
   await database.putBook(toRaw(book.value));
 }
 
 onUnmounted(async () => {
-  if (cover) URL.revokeObjectURL(coverUrl);
+  book.value.lastOpened = new Date();
+  await database.putBook(toRaw(book.value));
 
-  if (book.value.openingFirstTime) {
-    book.value.openingFirstTime = false;
-    book.value.lastAudioId = audio.value?.id || null;
-    book.value.lastPdfId = pdf.value?.id || null;
-    await database.putBook(toRaw(book.value));
-  }
+  if (coverUrl.value) URL.revokeObjectURL(coverUrl.value);
 });
 
 onMounted(async () => {
-  if (cover) coverUrl = URL.createObjectURL(cover);
+  if (book.value.openingFirstTime) {
+    const firstAudio = items.value.find((item) => item.type == ItemType.Audio);
+    if (firstAudio) book.value.lastAudioId = firstAudio.id;
+
+    const firstPdf = items.value.find((item) => item.type == ItemType.Pdf);
+    if (firstPdf) book.value.lastPdfId = firstPdf.id;
+
+    book.value.openingFirstTime = false;
+  }
+  book.value.lastOpened = new Date();
+
+  if (book.value.lastAudioId && !audio.value)
+    audio.value = items.value.find((item) => book.value.lastAudioId == item.id);
+
+  if (book.value.lastPdfId && !pdf.value)
+    pdf.value = items.value.find((item) => book.value.lastPdfId == item.id);
+
+  cover.value = await storage.read({ parentId: book.value.id, type: ResourceType.BookCover });
+  if (!cover.value) {
+    for (const item of items.value) {
+      const itemCover = await storage.read({ parentId: item.id, type: ResourceType.ItemCover });
+      if (itemCover) {
+        await storage.write({ parentId: book.value.id, type: ResourceType.BookCover }, itemCover);
+        cover.value = itemCover;
+        break;
+      }
+    }
+  }
+
+  await database.putBook(toRaw(book.value));
 });
 
 provide(SOURCES_DIALOG, sourcesDialog);

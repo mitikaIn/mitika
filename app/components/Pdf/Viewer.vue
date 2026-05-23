@@ -5,12 +5,12 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 import { type Pdf } from "@/models/pdf";
 
 defineEmits<{ close: [] }>();
 
 const { pdf } = defineProps<{ pdf: Pdf }>();
 
-const { f, debug } = useLogger("pdfViewer");
+const { f, debug } = useLogging("pdfViewer");
 </script>

@@ -1,6 +1,6 @@
 <template>
   <div
-    :class="className"
+    :class="classes"
     class="flex flex-col justify-center-safe"
   ></div>
 </template>
@@ -43,7 +43,7 @@ const seed = computed(() =>
     : PRIMES.reduce((prime, sum) => text.charCodeAt(prime % text.length) + sum, 0),
 );
 
-const className = computed(() => [
+const classes = computed(() => [
   COLORS[seed.value % COLORS.length],
   DIRECTIONS[seed.value % DIRECTIONS.length],
 ]);

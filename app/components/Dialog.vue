@@ -4,7 +4,7 @@
     ref="dialog"
   >
     <div
-      :class="className"
+      :class="classes"
       class="modal-box"
     >
       <slot />
@@ -12,8 +12,8 @@
   </dialog>
 </template>
 <script setup lang="ts">
-const { className = "" } = defineProps<{
-  className?: string;
+const { classes = "" } = defineProps<{
+  classes?: string;
 }>();
 
 const dialog = useTemplateRef("dialog");

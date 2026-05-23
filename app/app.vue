@@ -9,10 +9,10 @@
 <script setup lang="ts">
 import { Constants } from "@/constants";
 import { useDatabase } from "@/database";
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 import { Key, Theme } from "@/models/settings";
 
-const { f, debug, error } = useLogger("app");
+const { f, debug, error } = useLogging("app");
 
 const database = await useDatabase();
 

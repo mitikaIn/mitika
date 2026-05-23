@@ -1,6 +1,6 @@
 <template>
   <Dialog
-    className="w-[90vw] max-w-2xl"
+    classes="w-[90vw] max-w-2xl"
     ref="dialog"
   >
     <div class="flex h-[75vh] flex-col gap-4">
@@ -20,7 +20,7 @@
         </button>
       </div>
       <input
-        v-model="needle"
+        v-model="search"
         class="input w-full"
         :placeholder="$t('Search notes…')"
       />
@@ -38,7 +38,7 @@
       </ol>
       <Placeholder
         class="hidden h-full peer-empty:flex"
-        :description="$t(needle ? 'No matching note exists.' : 'Add a note to display it here.')"
+        :description="$t(search ? 'No matching note exists.' : 'Add a note to display it here.')"
         :title="$t('No note found')"
         :type="PlaceholderType.Info"
       />
@@ -52,16 +52,16 @@ import { useDatabase } from "@/database";
 import { collatePosition } from "@/models/item";
 import { type Note } from "@/models/object";
 
-const emit = defineEmits<{ open: [note: Note]; refresh: [] }>();
-
 const { notes } = defineProps<{ notes: Note[] }>();
 
-const needle = ref("");
+const emit = defineEmits<{ open: [note: Note]; refresh: [] }>();
+
+const search = ref("");
 
 const dialog = useTemplateRef("dialog");
 
 const filteredNotes = computed(() =>
-  notes.filter((note) => note.name.toLowerCase().includes(needle.value.toLowerCase())),
+  notes.filter((note) => note.name.toLowerCase().includes(search.value.toLowerCase())),
 );
 
 function toggle() {

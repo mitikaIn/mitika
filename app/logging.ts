@@ -66,7 +66,7 @@ function log(level: Level, domain: string, message: string) {
   while (LOGS.value.length > MAXIMUM_LOGS) LOGS.value.pop();
 }
 
-export function useLogger(domain: string): Logger {
+export function useLogging(domain: string): Logger {
   return {
     f,
     debug: (message: string) => log(Level.Debug, domain, message),

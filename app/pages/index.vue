@@ -97,10 +97,10 @@
 <script lang="ts" setup>
 import { ButtonType } from "@/components/MessageDialog.vue";
 import { useDatabase } from "@/database";
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 import { type Book, ITEM_TYPES_MAP, newBook, newItem } from "@/models";
 import { BooksSortType, BooksViewType, Key } from "@/models/settings";
-import { useStorage } from "@/storages";
+import { useStorage, ResourceType } from "@/storages";
 import { splitBaseName, toTitleCase } from "@/utils";
 import {
   PhFolderPlus,
@@ -114,7 +114,7 @@ import {
 } from "@phosphor-icons/vue";
 
 const database = await useDatabase();
-const { f, debug } = useLogger("home");
+const { f, debug } = useLogging("home");
 const { t } = useI18n();
 const storage = await useStorage();
 
@@ -161,13 +161,15 @@ async function onRemove(book: Book) {
 
       const items = await database.getItems(book.id);
       for (const item of items) {
+        debug(f`Dropping item resources: ${item.name}`);
+        await storage.remove({ parentId: item.id, type: ResourceType.ItemAll });
         debug(f`Dropping item file: ${item.file}`);
         await sourcesDialog.value!.dropFile(toRaw(item).file);
       }
 
-      debug("Removing cover image");
-      await storage.remove(`/books/${book.id}/cover.png`);
+      debug("Removing book resources");
 
+      await storage.remove({ parentId: book.id, type: ResourceType.BookAll });
       await database.delBook(book);
       await refreshBooks();
     }

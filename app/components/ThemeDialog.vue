@@ -1,7 +1,7 @@
 <template>
   <Dialog
     ref="dialog"
-    className="w-[90vw] max-w-2xl"
+    classes="w-[90vw] max-w-2xl"
   >
     <div class="flex h-[75vh] flex-col gap-4">
       <div class="flex flex-row gap-2">

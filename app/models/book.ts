@@ -6,6 +6,8 @@ export interface Book {
   lastOpened: Date;
   focus: boolean;
   openingFirstTime: boolean;
+  temporaryName: boolean;
+  temporaryAuthors: boolean;
   lastAudioId: string | null;
   lastPdfId: string | null;
 }
@@ -19,6 +21,8 @@ export function newBook(name: string): Book {
     lastOpened: new Date(),
     focus: false,
     openingFirstTime: true,
+    temporaryName: true,
+    temporaryAuthors: true,
     lastAudioId: null,
     lastPdfId: null,
   };

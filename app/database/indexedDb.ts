@@ -1,9 +1,9 @@
 import { Database } from "@/database/database";
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 import { type Book, type Item, type Object } from "@/models";
 import { type Key } from "@/models/settings";
 
-const { f, debug } = useLogger("indexedDb");
+const { f, debug } = useLogging("indexedDb");
 
 const DATABSE_NAME = "main";
 const DATABASE_VERSION = 1;

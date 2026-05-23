@@ -1,5 +1,7 @@
 <template>
-  <li class="bg-base-200 rounded-field flex w-full flex-row items-center gap-2 p-2 shadow-md">
+  <li
+    class="bg-base-200 rounded-field flex h-full w-full flex-row items-center gap-2 p-2 shadow-md"
+  >
     <Cover
       :book="book"
       class="rounded-field h-16 w-16"
@@ -11,13 +13,13 @@
       <span class="line-clamp-2 w-full font-bold break-words">
         {{ book.name }}
       </span>
-      <span class="w-full italic">
+      <span class="line-clamp-2 w-full break-words italic">
         {{ book.authors.length == 0 ? "Unknown" : book.authors.join(", ") }}
       </span>
     </button>
     <Dropdown
-      buttonClassName="btn-ghost"
-      dropdownClassName="dropdown-end"
+      buttonClasses="btn-ghost"
+      dropdownClasses="dropdown-end"
     >
       <template #button>
         <PhDotsThreeVertical class="size-6" />

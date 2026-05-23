@@ -178,8 +178,8 @@ export default function Menu(props: Props, context: SetupContext<{}>) {
   const menu = (
     <li>
       <Dropdown
-        buttonClassName={`btn-ghost ${getDropdownClass(children.length, btnSize, gap)}`}
-        dropdownClassName={dropdownClass}
+        buttonClasses={`btn-ghost ${getDropdownClass(children.length, btnSize, gap)}`}
+        dropdownClasses={dropdownClass}
       >
         {{
           button: () => <PhDotsThreeVertical class="size-6" />,

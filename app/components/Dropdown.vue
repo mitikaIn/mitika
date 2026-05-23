@@ -1,6 +1,6 @@
 <template>
   <button
-    :class="buttonClassName"
+    :class="buttonClasses"
     class="btn"
     :popovertarget="popoverId"
     :style="`anchor-name:--anchor-${popoverId}`"
@@ -8,7 +8,7 @@
     <slot name="button"></slot>
   </button>
   <div
-    :class="dropdownClassName"
+    :class="dropdownClasses"
     class="dropdown"
     :id="popoverId"
     popover
@@ -19,8 +19,8 @@
 </template>
 <script setup lang="ts">
 defineProps<{
-  buttonClassName: string;
-  dropdownClassName: string;
+  buttonClasses: string;
+  dropdownClasses: string;
 }>();
 
 const popoverId = useId();

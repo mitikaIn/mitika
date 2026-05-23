@@ -48,6 +48,7 @@ export function newPdf(bookId: string, name: string, file: File): Pdf {
     name,
     file,
     openingFirstTime: true,
+    temporaryName: true,
     position: [0, 0, 0] as PdfPosition,
     black: 0xffffff,
     white: 0xffffff,

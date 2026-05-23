@@ -1,6 +1,6 @@
 <template>
   <Dialog
-    className="w-[90vw] max-w-2xl"
+    classes="w-[90vw] max-w-2xl"
     ref="dialog"
   >
     <div class="flex h-[75vh] flex-col gap-4">
@@ -20,7 +20,7 @@
         </button>
       </div>
       <input
-        v-model="needle"
+        v-model="search"
         class="input w-full"
         :placeholder="$t('Search marks…')"
       />
@@ -38,7 +38,7 @@
       </ol>
       <Placeholder
         class="hidden h-full peer-empty:flex"
-        :description="$t(needle ? 'No matching mark exists.' : 'Add a mark to display it here.')"
+        :description="$t(search ? 'No matching mark exists.' : 'Add a mark to display it here.')"
         :title="$t('No marks found')"
         :type="PlaceholderType.Info"
       />
@@ -56,11 +56,11 @@ const emit = defineEmits<{ open: [mark: Mark]; refresh: [] }>();
 
 const { marks } = defineProps<{ marks: Mark[] }>();
 
-const needle = ref("");
+const search = ref("");
 const dialog = useTemplateRef("dialog");
 
 const filteredMarks = computed(() =>
-  marks.filter((mark) => mark.name.toLowerCase().includes(needle.value.toLowerCase())),
+  marks.filter((mark) => mark.name.toLowerCase().includes(search.value.toLowerCase())),
 );
 
 function toggle() {

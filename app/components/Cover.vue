@@ -21,7 +21,7 @@
 </template>
 <script setup lang="ts">
 import { type Book } from "@/models";
-import { useStorage } from "@/storages";
+import { useStorage, ResourceType } from "@/storages";
 
 const storage = await useStorage();
 
@@ -30,7 +30,7 @@ const { book } = defineProps<{ book: Book }>();
 const coverUrl = ref<string | null>();
 
 onMounted(async () => {
-  const cover = await storage.read(`/books/${book.id}/cover.png`);
+  const cover = await storage.read({ parentId: book.id, type: ResourceType.BookCover });
   if (cover) coverUrl.value = URL.createObjectURL(cover);
 });
 

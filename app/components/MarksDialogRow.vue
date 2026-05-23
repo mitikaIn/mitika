@@ -15,7 +15,7 @@
       <Menu
         :btnSize="4"
         class="list-col-wrap col-start-1 col-end-4 justify-end gap-2"
-        dropdownClassName="dropdown-end"
+        dropdownClasses="dropdown-end"
         :gap="2"
       >
         <MenuItem

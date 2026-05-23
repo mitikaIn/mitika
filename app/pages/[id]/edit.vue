@@ -137,14 +137,14 @@
 import { ButtonType } from "@/components/MessageDialog.vue";
 import { Constants } from "@/constants";
 import { useDatabase } from "@/database";
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 import { ITEM_TYPES_MAP, type Item, ItemType, newItem } from "@/models";
-import { useStorage } from "@/storages";
-import { splitBaseName, toTitleCase } from "@/utils";
+import { useStorage, ResourceType } from "@/storages";
+import { splitBaseName, toTitleCase, toCover } from "@/utils";
 
 const database = await useDatabase();
 const { t } = useI18n();
-const { f, debug } = useLogger("edit");
+const { f, debug } = useLogging("edit");
 const route = useRoute();
 const router = useRouter();
 const storage = await useStorage();
@@ -156,7 +156,7 @@ const items = ref([...originalItems.value]);
 const name = ref(book.name);
 const authors = ref(book.authors.join(","));
 const tags = ref([...book.tags].join(","));
-const cover = ref(await storage.read(`/books/${book.id}/cover.png`));
+const cover = ref(await storage.read({ parentId: book.id, type: ResourceType.BookCover }));
 
 const img = useTemplateRef("img");
 const fileInput = useTemplateRef("fileInput");
@@ -283,17 +283,18 @@ async function onSaveClick() {
   await database.putBook(toRaw(book));
 
   if (cover.value) {
-    const canvas = new OffscreenCanvas(img.value!.naturalWidth, img.value!.naturalHeight);
-    const ctx = canvas.getContext("2d");
-    ctx!.drawImage(img.value!, 0, 0);
-    const blob = await canvas.convertToBlob({ type: "image/png" });
-    await storage.write(`/books/${book.id}/cover.png`, blob);
+    const blob = await toCover(cover.value);
+    await storage.write({ parentId: book.id, type: ResourceType.BookCover }, blob);
   } else {
-    await storage.remove(`/books/${book.id}/cover.png`);
+    await storage.remove({ parentId: book.id, type: ResourceType.BookCover });
   }
 
   router.back();
 }
 
-useHead({ title: t("Editing {name}", { name: book.name }) });
+onUnmounted(async () => {
+  if (coverUrl.value) URL.revokeObjectURL(coverUrl.value);
+});
+
+useHead({ title: t("Edit {name}", { name: book.name }) });
 </script>

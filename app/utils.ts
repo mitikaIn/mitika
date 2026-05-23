@@ -20,3 +20,24 @@ export function toTitleCase(str: string): string {
     .join(" ");
   return title;
 }
+
+export async function toCover(src: Blob): Promise<Blob> {
+  const img = new Image();
+  const { promise, resolve } = Promise.withResolvers();
+  img.addEventListener("load", () => resolve(null));
+
+  const srcUrl = URL.createObjectURL(src);
+  img.src = srcUrl;
+  await promise;
+
+  const canvas = new OffscreenCanvas(img.naturalWidth, img.naturalHeight);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("unable to get 2D context");
+
+  ctx.drawImage(img, 0, 0);
+  const dst = await canvas.convertToBlob({ type: "image/png" });
+
+  URL.revokeObjectURL(srcUrl);
+
+  return dst;
+}

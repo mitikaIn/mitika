@@ -18,6 +18,7 @@ export function newAudio(bookId: string, name: string, file: File): Audio {
     name,
     file,
     openingFirstTime: true,
+    temporaryName: true,
     position: [0] as AudioPosition,
     rate: 1,
     volume: 1,
@@ -25,3 +26,11 @@ export function newAudio(bookId: string, name: string, file: File): Audio {
 
   return audio;
 }
+
+
+
+
+
+
+
+

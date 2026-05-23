@@ -60,12 +60,12 @@
 </template>
 <script setup lang="ts">
 import { useDatabase } from "@/database";
-import { useLogger } from "@/logging";
+import { useLogging } from "@/logging";
 import { Key, Theme } from "@/models/settings";
 
 const database = await useDatabase();
 const { t } = useI18n();
-const { f, debug } = useLogger("settings");
+const { f, debug } = useLogging("settings");
 const router = useRouter();
 
 const applyTheme: (themeMode: Key.ThemeDark | Key.ThemeLight, theme: Theme) => void =
