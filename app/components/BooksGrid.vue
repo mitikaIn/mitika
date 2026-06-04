@@ -57,6 +57,10 @@ const { books, viewType, search, sortType, selectedTags } = defineProps<{
   viewType: BooksViewType;
 }>();
 
+const filteredBooks = computed(() => books.filter((book) => filterBook(book)));
+const searchedBooks = computed(() => filteredBooks.value.filter((book) => searchBook(book)));
+const sortedBooks = computed(() => searchedBooks.value.toSorted((a, b) => sortBook(a, b)));
+
 function filterBook(book: Book): boolean {
   if (selectedTags.size == 0) return true;
   return toRaw(book.tags).intersection(selectedTags).size != 0;
@@ -83,8 +87,4 @@ function sortBook(a: Book, b: Book): number {
   if (sortType == BooksSortType.ReverseAlphabetical) return b.name.localeCompare(a.name);
   return 0;
 }
-
-const filteredBooks = computed(() => books.filter((book) => filterBook(book)));
-const searchedBooks = computed(() => filteredBooks.value.filter((book) => searchBook(book)));
-const sortedBooks = computed(() => searchedBooks.value.toSorted((a, b) => sortBook(a, b)));
 </script>

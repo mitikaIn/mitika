@@ -35,6 +35,7 @@ export enum PlaceholderType {
 </script>
 <script setup lang="ts">
 import { PhInfo, PhXCircle } from "@phosphor-icons/vue";
+
 defineEmits<{
   click: [];
 }>();

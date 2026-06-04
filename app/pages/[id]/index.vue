@@ -129,14 +129,19 @@ import { useStorage, ResourceType } from "@/storages";
 const FALLBACK_COVER_URL = "/logo.webp";
 
 const database = await useDatabase();
+const { t } = useI18n();
 const { f, debug } = useLogging("open");
 const route = useRoute();
 const storage = await useStorage();
 
 const book = ref(await database.getBook(route.params.id as string));
 const items = ref(await database.getItems(book.value.id));
-
+const audio = ref<Audio | null>(null);
+const pdf = ref<Pdf | null>(null);
 const cover = ref<Blob | null>(null);
+
+const itemsDialog = useTemplateRef("itemsDialog");
+const sourcesDialog = useTemplateRef("sourcesDialog");
 
 const coverUrl = computed<string | null>((oldCoverUrl) => {
   if (oldCoverUrl) URL.revokeObjectURL(oldCoverUrl);
@@ -144,19 +149,12 @@ const coverUrl = computed<string | null>((oldCoverUrl) => {
   return null;
 });
 
-const sourcesDialog = useTemplateRef("sourcesDialog");
-
-const audio = ref<Audio | null>(null);
-const pdf = ref<Pdf | null>(null);
-
 const openItemIds = computed<Set<string>>(() => {
   const ids = new Set();
   if (audio.value) ids.add(audio.value.id);
   if (pdf.value) ids.add(pdf.value.id);
   return ids;
 });
-
-const itemsDialog = useTemplateRef("itemsDialog");
 
 async function onCloseItem(item: Item) {
   if (item.type == ItemType.Audio) {
@@ -166,21 +164,7 @@ async function onCloseItem(item: Item) {
     book.value.lastPdfId = null;
     pdf.value = null;
   } else {
-    throw new Error(`Unknown item.type: ${item.type}`);
-  }
-
-  await database.putBook(toRaw(book.value));
-}
-
-async function onOpenItem(item: Item) {
-  if (item.type == ItemType.Audio) {
-    book.value.lastAudioId = item.id;
-    audio.value = item;
-  } else if (item.type == ItemType.Pdf) {
-    book.value.lastPdfId = item.id;
-    pdf.value = item;
-  } else {
-    throw new Error(`Unknown item.type: ${item.type}`);
+    throw new Error(`unknown item type ${item.type}`);
   }
 
   await database.putBook(toRaw(book.value));
@@ -210,12 +194,21 @@ async function onMetadata(name: string | null, authors: string[], itemCover: Blo
   await database.putBook(toRaw(book.value));
 }
 
-onUnmounted(async () => {
-  book.value.lastOpened = new Date();
-  await database.putBook(toRaw(book.value));
+async function onOpenItem(item: Item) {
+  if (item.type == ItemType.Audio) {
+    book.value.lastAudioId = item.id;
+    audio.value = item;
+  } else if (item.type == ItemType.Pdf) {
+    book.value.lastPdfId = item.id;
+    pdf.value = item;
+  } else {
+    throw new Error(`unknown item type ${item.type}`);
+  }
 
-  if (coverUrl.value) URL.revokeObjectURL(coverUrl.value);
-});
+  await database.putBook(toRaw(book.value));
+}
+
+provide(SOURCES_DIALOG, sourcesDialog);
 
 onMounted(async () => {
   if (book.value.openingFirstTime) {
@@ -229,11 +222,10 @@ onMounted(async () => {
   }
   book.value.lastOpened = new Date();
 
-  if (book.value.lastAudioId && !audio.value)
+  if (book.value.lastAudioId)
     audio.value = items.value.find((item) => book.value.lastAudioId == item.id);
 
-  if (book.value.lastPdfId && !pdf.value)
-    pdf.value = items.value.find((item) => book.value.lastPdfId == item.id);
+  if (book.value.lastPdfId) pdf.value = items.value.find((item) => book.value.lastPdfId == item.id);
 
   cover.value = await storage.read({ parentId: book.value.id, type: ResourceType.BookCover });
   if (!cover.value) {
@@ -250,5 +242,14 @@ onMounted(async () => {
   await database.putBook(toRaw(book.value));
 });
 
-provide(SOURCES_DIALOG, sourcesDialog);
+onUnmounted(async () => {
+  if (coverUrl.value) URL.revokeObjectURL(coverUrl.value);
+});
+
+useHead({
+  title: t("{name} by {authors}", {
+    name: book.value.name,
+    authors: book.value.authors.length != 0 ? book.value.authors.join(", ") : "unknown",
+  }),
+});
 </script>

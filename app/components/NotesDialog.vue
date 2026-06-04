@@ -64,10 +64,6 @@ const filteredNotes = computed(() =>
   notes.filter((note) => note.name.toLowerCase().includes(search.value.toLowerCase())),
 );
 
-function toggle() {
-  dialog.value!.toggle();
-}
-
 async function onChange(note: Note, name: string, description: string) {
   note.name = name;
   note.description = description;
@@ -85,6 +81,10 @@ async function onRemove(note: Note) {
   const database = await useDatabase();
   await database.delObject(toRaw(note));
   emit("refresh");
+}
+
+function toggle() {
+  dialog.value!.toggle();
 }
 
 defineExpose({ toggle });

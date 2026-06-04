@@ -88,17 +88,17 @@ import { PhPencilSimple, PhTrashSimple, PhCheck, PhX } from "@phosphor-icons/vue
 import { FORMAT_POSITION } from "@/keys";
 import { type Mark } from "@/models/object";
 
-const emit = defineEmits<{ change: [name: string]; open: []; remove: [] }>();
-
-const { mark } = defineProps<{ mark: Mark }>();
-
-const formatPosition = inject(FORMAT_POSITION);
-
 enum State {
   Display,
   Edit,
   Remove,
 }
+
+const formatPosition = inject(FORMAT_POSITION);
+
+const emit = defineEmits<{ change: [name: string]; open: []; remove: [] }>();
+
+const { mark } = defineProps<{ mark: Mark }>();
 
 const state = ref(State.Display);
 const name = ref(mark.name);

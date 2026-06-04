@@ -49,6 +49,11 @@ const dialogTitle = ref("");
 
 const dialog = useTemplateRef("dialog");
 
+function onClick(action: string) {
+  hide();
+  dialogCallback!(action);
+}
+
 function hide() {
   dialog.value!.hide();
 }
@@ -59,11 +64,6 @@ function show(title: string, message: string, buttons: Button[], callback: OnCli
   dialogButtons.value = buttons;
   dialogCallback = callback;
   dialog.value!.show();
-}
-
-function onClick(action: string) {
-  hide();
-  dialogCallback!(action);
 }
 
 defineExpose({

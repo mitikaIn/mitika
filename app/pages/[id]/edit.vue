@@ -1,12 +1,7 @@
 <template>
   <div class="@container flex flex-col gap-8 p-4">
     <header class="flex flex-row items-center gap-4">
-      <button
-        class="btn btn-ghost"
-        @click="onBackClick"
-      >
-        <BackIcon />
-      </button>
+      <BackButton ref="backButton" />
       <TitleBar
         class="grow"
         :title="book.name"
@@ -97,7 +92,7 @@
         <p>
           {{
             $t(
-              "If you clear the current cover, then a new cover will be generated when you open the book.",
+              "If you clear the current cover, then a new cover will be found when you open the book.",
             )
           }}
         </p>
@@ -146,7 +141,6 @@ const database = await useDatabase();
 const { t } = useI18n();
 const { f, debug } = useLogging("edit");
 const route = useRoute();
-const router = useRouter();
 const storage = await useStorage();
 
 const book = await database.getBook(route.params.id as string);
@@ -158,6 +152,7 @@ const authors = ref(book.authors.join(","));
 const tags = ref([...book.tags].join(","));
 const cover = ref(await storage.read({ parentId: book.id, type: ResourceType.BookCover }));
 
+const backButton = useTemplateRef("backButton");
 const img = useTemplateRef("img");
 const fileInput = useTemplateRef("fileInput");
 const messageDialog = useTemplateRef("messageDialog");
@@ -190,27 +185,68 @@ function diffItems(
     if (membership == -1) newItems.push(item);
     else if (membership == 0) oldItems.push(item);
     else if (membership == 1) delItems.push(item);
-    else throw new Error(`Unknown membership: ${membership}`);
+    else throw new Error(`unknown membership ${membership}`);
 
   return { newItems, oldItems, delItems };
 }
 
-async function onAddClick() {
-  const [file] = await sourcesDialog.value!.chooseFiles(false, [
-    {
-      name: t("Item"),
-      types: [...ITEM_TYPES_MAP.keys()],
-    },
-  ]);
-  if (!file) return;
+async function onSaveClick() {
+  let newList = [...items.value.map(toRaw)];
+  let oldList = [...originalItems.value.map(toRaw)];
 
-  const name = toTitleCase(splitBaseName(file.name).name);
-  const item = newItem(book.id, name, file);
-  items.value.push(item);
+  for (let i = 0; i < newList.length; i++) {
+    const item = newList[i]!;
+    item.order = i;
+  }
+
+  const { newItems, oldItems, delItems } = diffItems(newList, oldList);
+
+  await database.updateItems(book.id, newItems, oldItems, delItems);
+
+  for (const item of delItems) {
+    if (item.id == book.lastAudioId) book.lastAudioId = null;
+    if (item.id == book.lastPdfId) book.lastPdfId = null;
+    debug(`removing item ${item.id} (${item.name})`);
+    await storage.remove({ parentId: item.id, type: ResourceType.ItemAll });
+    await sourcesDialog.value!.dropFile(toRaw(item).file);
+  }
+
+  const newName = name.value || newItems[0]!.name;
+  if (book.name != newName) {
+    book.name = newName;
+    book.temporaryName = false;
+  }
+
+  const newAuthors = authors.value
+    .split(",")
+    .map((author) => author.trim())
+    .filter((author) => author.length != 0);
+  if (book.authors.join(", ") != newAuthors.join(", ")) {
+    book.authors = newAuthors;
+    book.temporaryAuthors = false;
+  }
+
+  book.tags = new Set(
+    tags.value
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length != 0),
+  );
+
+  await database.putBook(toRaw(book));
+
+  if (cover.value) {
+    const blob = await toCover(cover.value);
+    await storage.write({ parentId: book.id, type: ResourceType.BookCover }, blob);
+  } else {
+    await storage.remove({ parentId: book.id, type: ResourceType.BookCover });
+  }
+
+  await backButton.value!.back();
 }
 
-function onBackClick() {
-  router.back();
+function onCoverChange() {
+  cover.value = fileInput.value?.files?.[0] ?? null;
 }
 
 function onClearClick() {
@@ -218,12 +254,9 @@ function onClearClick() {
   cover.value = null;
 }
 
-function onCoverChange() {
-  cover.value = fileInput.value?.files?.[0] ?? null;
-}
-
 function onItemChange(item: Item, name: string) {
   item.name = name;
+  item.temporaryName = false;
 }
 
 function onItemMove(item: Item, src: number, dst: number) {
@@ -249,52 +282,28 @@ async function onItemRemove(item: Item) {
   });
 }
 
-async function onSaveClick() {
-  let newList = [...items.value.map(toRaw)];
-  let oldList = [...originalItems.value.map(toRaw)];
+async function onAddClick() {
+  const [file] = await sourcesDialog.value!.chooseFiles(false, [
+    {
+      name: t("Item"),
+      types: [...ITEM_TYPES_MAP.keys()],
+    },
+  ]);
+  if (!file) return;
 
-  for (let i = 0; i < newList.length; i++) {
-    const item = newList[i]!;
-    item.order = i;
-  }
-
-  const { newItems, oldItems, delItems } = diffItems(newList, oldList);
-
-  await database.updateItems(book.id, newItems, oldItems, delItems);
-
-  for (const item of delItems) {
-    if (item.id == book.lastAudioId) book.lastAudioId = null;
-    if (item.id == book.lastPdfId) book.lastPdfId = null;
-    await sourcesDialog.value!.dropFile(toRaw(item).file);
-  }
-
-  book.name = name.value || newItems[0]!.name;
-  book.authors = authors.value
-    .split(",")
-    .map((author) => author.trim())
-    .filter((author) => author.length != 0);
-  book.tags = new Set(
-    tags.value
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length != 0),
-  );
-
-  await database.putBook(toRaw(book));
-
-  if (cover.value) {
-    const blob = await toCover(cover.value);
-    await storage.write({ parentId: book.id, type: ResourceType.BookCover }, blob);
-  } else {
-    await storage.remove({ parentId: book.id, type: ResourceType.BookCover });
-  }
-
-  router.back();
+  const name = toTitleCase(splitBaseName(file.name).name);
+  const item = newItem(book.id, name, file);
+  items.value.push(item);
 }
 
 onUnmounted(async () => {
   if (coverUrl.value) URL.revokeObjectURL(coverUrl.value);
 });
 
-useHead({ title: t("Edit {name}", { name: book.name }) });
+useHead({
+  title: t("Edit {name} by {authors}", {
+    name: book.name,
+    authors: book.authors.length != 0 ? book.authors.join(", ") : "unknown",
+  }),
+});
 </script>

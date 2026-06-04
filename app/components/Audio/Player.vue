@@ -214,6 +214,15 @@ import { type Outline } from "@/components/OutlinesDialogRow.vue";
 import { toCover } from "@/utils";
 import { useStorage, ResourceType } from "@/storages";
 
+const PLACEHOLDER_AUDIO = "/placeholder.opus";
+const SAVE_INTERVAL = 2000;
+
+const database = await useDatabase();
+const { f, debug, error } = useLogging("audioPlayer");
+const storage = await useStorage();
+
+const sourcesDialog = inject(SOURCES_DIALOG);
+
 const emit = defineEmits<{
   close: [];
   metadata: [name: string | null, authors: string[], cover: Blob | null];
@@ -221,12 +230,7 @@ const emit = defineEmits<{
 
 const { audio, focus } = defineProps<{ audio: Audio; focus: boolean }>();
 
-const database = await useDatabase();
-const { f, debug, error } = useLogging("audioPlayer");
-const storage = await useStorage();
-
-const PLACEHOLDER_AUDIO = "/placeholder.opus";
-const SAVE_INTERVAL = 2000;
+let saveIntervalId = 0;
 
 const duration = ref(1);
 const marks = ref<Mark[]>([]);
@@ -234,8 +238,6 @@ const notes = ref<Note[]>([]);
 const outlines = ref<Outline[]>([]);
 const playing = ref(false);
 const url = ref(PLACEHOLDER_AUDIO);
-
-let saveIntervalId = 0;
 
 const audioEl = useTemplateRef("audioEl");
 const marksDialog = useTemplateRef("marksDialog");
@@ -246,18 +248,17 @@ const rateDialog = useTemplateRef("rateDialog");
 const goToDialog = useTemplateRef("goToDialog");
 const volumeDialog = useTemplateRef("volumeDialog");
 
-const sourcesDialog = inject(SOURCES_DIALOG);
-
 const hoursLength = computed(() => Math.floor(Math.log10(duration.value / 3600) + 1));
 
-watch(
-  () => audio,
-  async (newAudio, oldAudio) => {
-    if (oldAudio) await close(oldAudio);
-    if (sourcesDialog.value) await open(newAudio);
-  },
-  { immediate: true },
-);
+function onDurationChange() {
+  debug(`found duration, restoring position to ${audio.position[0]}`);
+  duration.value = audioEl.value!.duration;
+  audioEl.value!.currentTime = audio.position[0];
+}
+
+function onError() {
+  error(f`failed to play audio ${audioEl.value!.error}`);
+}
 
 function clearSaveInterval() {
   if (saveIntervalId != 0) {
@@ -267,10 +268,103 @@ function clearSaveInterval() {
   }
 }
 
-function onDurationChange() {
-  debug(`found duration, restoring position`);
-  duration.value = audioEl.value!.duration;
-  audioEl.value!.currentTime = audio.position[0];
+function onPause() {
+  playing.value = false;
+
+  clearSaveInterval();
+}
+
+async function onSaveInterval() {
+  await database.putItem(toRaw(audio));
+}
+
+function onPlay() {
+  playing.value = true;
+
+  clearSaveInterval();
+  saveIntervalId = setInterval(onSaveInterval, SAVE_INTERVAL);
+}
+
+function onTimeUpdate() {
+  if (duration.value == 0) return;
+  audio.position[0] = audioEl.value!.currentTime;
+}
+
+function formatPosition(position: AudioPosition): string {
+  let [delta] = position;
+  const hours = Math.floor(delta / 3600);
+  delta = delta % 3600;
+  const minutes = Math.floor(delta / 60);
+  delta = delta % 60;
+  const seconds = Math.floor(delta);
+
+  const hoursStr = hours.toString().padStart(hoursLength.value, "0");
+  const minsStr = minutes.toString().padStart(2, "0");
+  const secsStr = seconds.toString().padStart(2, "0");
+
+  return `${hoursStr}:${minsStr}:${secsStr}`;
+}
+
+async function onSeek(position: AudioPosition, play: boolean | null = null) {
+  debug(`Seeking to position ${position} with play ${play}`);
+  const shouldPlay = play == null ? playing.value : play;
+  audioEl.value!.pause();
+  audioEl.value!.currentTime = position[0];
+  audio.value!.position = position;
+  if (shouldPlay) audioEl.value!.play();
+  await database.putItem(toRaw(audio));
+}
+
+async function onPositionChange(event: Event) {
+  const value = Number((event.target as HTMLInputElement).value);
+  debug(`Changing to position: ${value}`);
+  audioEl.value!.currentTime = value;
+  await database.putItem(toRaw(audio));
+}
+
+function onSkip(forward: boolean) {
+  if (forward) {
+    for (let i = 0; i < stops.value.length; i++) {
+      const stop = stops.value[i]!;
+      if (collatePosition(stop.position, audio.position) > 0) {
+        onSeek(stop.position as AudioPosition);
+        return;
+      }
+    }
+  } else {
+    for (let i = stops.value.length - 1; i > -1; i--) {
+      const stop = stops.value[i]!;
+      if (collatePosition(stop.position, audio.position) < 0) {
+        onSeek(stop.position as AudioPosition);
+        return;
+      }
+    }
+  }
+}
+
+function onPlayingChange() {
+  if (playing.value) {
+    audioEl.value!.play();
+    clearSaveInterval();
+    saveIntervalId = setTimeout(onSaveInterval, SAVE_INTERVAL);
+  } else {
+    audioEl.value!.pause();
+    clearSaveInterval();
+  }
+}
+
+async function onRefreshMarks() {
+  const unsorted = await database.getObjects<Mark>(audio.id, ObjectType.Mark);
+  marks.value = unsorted.sort((a, b) => collatePosition(a.position, b.position));
+}
+
+async function onOpen(object: Mark | Note | Outline) {
+  await onSeek(object.position as AudioPosition);
+}
+
+async function onRefreshNotes() {
+  const unsorted = await database.getObjects<Note>(audio.id, ObjectType.Note);
+  notes.value = unsorted.sort((a, b) => collatePosition(a.position, b.position));
 }
 
 async function close(audio: Audio) {
@@ -326,112 +420,18 @@ async function open(audio: Audio) {
   await onRefreshNotes();
 }
 
-function onError() {
-  error(f`Failed to play audio: ${audioEl.value!.error}`);
-}
+provide(FORMAT_POSITION, formatPosition as FormatPositionFn);
 
-async function onOpen(object: Mark | Note | Outline) {
-  await onSeek(object.position as AudioPosition);
-}
-
-async function onSaveInterval() {
-  await database.putItem(toRaw(audio));
-}
-
-function onPause() {
-  playing.value = false;
-
-  clearSaveInterval();
-}
-
-function onPlay() {
-  playing.value = true;
-
-  clearSaveInterval();
-  saveIntervalId = setInterval(onSaveInterval, SAVE_INTERVAL);
-}
-
-function onPlayingChange() {
-  if (playing.value) {
-    audioEl.value!.play();
-    clearSaveInterval();
-    saveIntervalId = setTimeout(onSaveInterval, SAVE_INTERVAL);
-  } else {
-    audioEl.value!.pause();
-    clearSaveInterval();
-  }
-}
-
-async function onPositionChange(event: Event) {
-  const value = Number((event.target as HTMLInputElement).value);
-  debug(`Changing to position: ${value}`);
-  audioEl.value!.currentTime = value;
-  await database.putItem(toRaw(audio));
-}
-
-function onTimeUpdate() {
-  if (duration.value == 0) return;
-  audio.position[0] = audioEl.value!.currentTime;
-}
-
-async function onRefreshMarks() {
-  const unsorted = await database.getObjects<Mark>(audio.id, ObjectType.Mark);
-  marks.value = unsorted.sort((a, b) => collatePosition(a.position, b.position));
-}
-
-async function onRefreshNotes() {
-  const unsorted = await database.getObjects<Note>(audio.id, ObjectType.Note);
-  notes.value = unsorted.sort((a, b) => collatePosition(a.position, b.position));
-}
-
-async function onSeek(position: AudioPosition, play: boolean | null = null) {
-  debug(`Seeking to position ${position} with play ${play}`);
-  const shouldPlay = play == null ? playing.value : play;
-  audioEl.value!.pause();
-  audioEl.value!.currentTime = position[0];
-  audio.value!.position = position;
-  if (shouldPlay) audioEl.value!.play();
-  await database.putItem(toRaw(audio));
-}
-
-function onSkip(forward: boolean) {
-  if (forward) {
-    for (let i = 0; i < stops.value.length; i++) {
-      const stop = stops.value[i]!;
-      if (collatePosition(stop.position, audio.position) > 0) {
-        onSeek(stop.position as AudioPosition);
-        return;
-      }
-    }
-  } else {
-    for (let i = stops.value.length - 1; i > -1; i--) {
-      const stop = stops.value[i]!;
-      if (collatePosition(stop.position, audio.position) < 0) {
-        onSeek(stop.position as AudioPosition);
-        return;
-      }
-    }
-  }
-}
-
-function formatPosition(position: AudioPosition): string {
-  let [delta] = position;
-  const hours = Math.floor(delta / 3600);
-  delta = delta % 3600;
-  const minutes = Math.floor(delta / 60);
-  delta = delta % 60;
-  const seconds = Math.floor(delta);
-
-  const hoursStr = hours.toString().padStart(hoursLength.value, "0");
-  const minsStr = minutes.toString().padStart(2, "0");
-  const secsStr = seconds.toString().padStart(2, "0");
-
-  return `${hoursStr}:${minsStr}:${secsStr}`;
-}
+watch(
+  () => audio,
+  async (newAudio, oldAudio) => {
+    if (oldAudio) await close(oldAudio);
+    if (sourcesDialog.value) await open(newAudio);
+  },
+  { immediate: true },
+);
 
 onUnmounted(async () => {
   if (audio.value) await close(audio.value);
 });
-
-provide(FORMAT_POSITION, formatPosition as FormatPositionFn);
 </script>

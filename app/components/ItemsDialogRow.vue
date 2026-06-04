@@ -47,7 +47,6 @@
 </template>
 <script setup lang="ts">
 import { PhX, PhFileText, PhMusicNotes, PhPlay, PhBookOpen } from "@phosphor-icons/vue";
-
 import { type Item, ItemType } from "@/models";
 
 defineEmits<{ open: []; close: [] }>();

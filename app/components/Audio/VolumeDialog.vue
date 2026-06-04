@@ -103,15 +103,11 @@
 <script setup lang="ts">
 import { PhX, PhMinus, PhPlus } from "@phosphor-icons/vue";
 
-const volume = defineModel<number>({ default: 0 });
-
 const STEP = 0.1;
 
-const dialog = useTemplateRef("dialog");
+const volume = defineModel<number>({ default: 0 });
 
-function toggle() {
-  dialog.value!.toggle();
-}
+const dialog = useTemplateRef("dialog");
 
 function onChange(event: Event) {
   let newVolume = Number((event.target as HTMLInputElement).value) / 100;
@@ -122,6 +118,10 @@ function onChange(event: Event) {
   newVolume = Math.min(Math.max(newVolume, 0), 1);
   volume.value = newVolume;
   (event.target as HTMLInputElement).value = Math.floor(volume.value * 100).toString();
+}
+
+function toggle() {
+  dialog.value!.toggle();
 }
 
 defineExpose({ toggle });

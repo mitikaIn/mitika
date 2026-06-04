@@ -43,24 +43,18 @@ import { useDatabase } from "@/database";
 import { type Item } from "@/models/item";
 import { newNote } from "@/models/object";
 
-const emit = defineEmits<{ refresh: [] }>();
-
-const { item } = defineProps<{ item: Item }>();
-
 const { t } = useI18n();
 
 const formatPosition = inject(FORMAT_POSITION);
+
+const emit = defineEmits<{ refresh: [] }>();
+
+const { item } = defineProps<{ item: Item }>();
 
 const description = ref("");
 const name = ref("");
 
 const dialog = useTemplateRef("dialog");
-
-function toggle() {
-  name.value = t("On {position}", { position: formatPosition!(item.position) });
-  description.value = t("{name} says…", { name: item.name });
-  dialog.value!.toggle();
-}
 
 async function onAddClick() {
   const database = await useDatabase();
@@ -68,6 +62,12 @@ async function onAddClick() {
   await database.putObject(note);
   dialog.value!.hide();
   emit("refresh");
+}
+
+function toggle() {
+  name.value = t("On {position}", { position: formatPosition!(item.position) });
+  description.value = t("{name} says…", { name: item.name });
+  dialog.value!.toggle();
 }
 
 defineExpose({ toggle });

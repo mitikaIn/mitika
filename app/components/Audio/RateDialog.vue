@@ -78,6 +78,7 @@
 </template>
 <script setup lang="ts">
 import { PhX } from "@phosphor-icons/vue";
+
 const rate = defineModel<number>();
 
 const dialog = useTemplateRef("dialog");

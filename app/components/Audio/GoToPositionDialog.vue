@@ -80,6 +80,15 @@ const dialog = useTemplateRef("dialog");
 
 const maxHours = computed(() => Math.floor(duration / 3600));
 
+function onClick() {
+  dialog.value!.hide();
+  const value = Math.max(
+    Math.min(hours.value * 3600 + minutes.value * 60 + seconds.value, duration),
+    0,
+  );
+  emit("change", [value], !pause.value);
+}
+
 function toggle() {
   let [delta] = position;
   hours.value = Math.floor(delta / 3600);
@@ -91,15 +100,6 @@ function toggle() {
   pause.value = !playing;
 
   dialog.value!.toggle();
-}
-
-function onClick() {
-  dialog.value!.hide();
-  const value = Math.max(
-    Math.min(hours.value * 3600 + minutes.value * 60 + seconds.value, duration),
-    0,
-  );
-  emit("change", [value], !pause.value);
 }
 
 defineExpose({ toggle });

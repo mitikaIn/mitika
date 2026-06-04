@@ -138,44 +138,6 @@ async function refreshBooks() {
   books.value = newBooks;
 }
 
-async function onEdit(book: Book) {
-  await navigateTo(`/${book.id}/edit`);
-}
-
-async function onOpen(book: Book) {
-  await navigateTo(`/${book.id}`);
-}
-
-async function onRemove(book: Book) {
-  const title = t("Remove {name}?", { name: book.name });
-  const message = t(
-    "Removing a book clears its bookmarks, notes etc. However the book's files are not deleted.",
-  );
-  const buttons = [
-    { action: "cancel", label: t("Cancel"), type: ButtonType.Normal },
-    { action: "remove", label: t("Remove"), type: ButtonType.Destructive },
-  ];
-  messageDialog.value!.show(title, message, buttons, async (action: string) => {
-    if (action == "remove") {
-      debug(`Removing book: ${book.id}`);
-
-      const items = await database.getItems(book.id);
-      for (const item of items) {
-        debug(f`Dropping item resources: ${item.name}`);
-        await storage.remove({ parentId: item.id, type: ResourceType.ItemAll });
-        debug(f`Dropping item file: ${item.file}`);
-        await sourcesDialog.value!.dropFile(toRaw(item).file);
-      }
-
-      debug("Removing book resources");
-
-      await storage.remove({ parentId: book.id, type: ResourceType.BookAll });
-      await database.delBook(book);
-      await refreshBooks();
-    }
-  });
-}
-
 async function onAdd() {
   const files = await sourcesDialog.value!.chooseFiles(true, [
     {
@@ -200,7 +162,41 @@ async function onAdd() {
   await navigateTo(`/${book.id}`);
 }
 
-onMounted(async () => {
-  await refreshBooks();
-});
+async function onOpen(book: Book) {
+  await navigateTo(`/${book.id}`);
+}
+
+async function onEdit(book: Book) {
+  await navigateTo(`/${book.id}/edit`);
+}
+
+async function onRemove(book: Book) {
+  const title = t("Remove {name}?", { name: book.name });
+  const message = t(
+    "Removing a book clears its bookmarks, notes etc. However the book's files are not deleted.",
+  );
+  const buttons = [
+    { action: "cancel", label: t("Cancel"), type: ButtonType.Normal },
+    { action: "remove", label: t("Remove"), type: ButtonType.Destructive },
+  ];
+  messageDialog.value!.show(title, message, buttons, async (action: string) => {
+    if (action == "remove") {
+      debug(`removing book ${book.id} (${book.name})`);
+
+      const items = await database.getItems(book.id);
+      for (const item of items) {
+        debug(`removing item ${item.id} (${item.name})`);
+        await storage.remove({ parentId: item.id, type: ResourceType.ItemAll });
+        await sourcesDialog.value!.dropFile(toRaw(item).file);
+      }
+
+      debug("removing resources");
+      await storage.remove({ parentId: book.id, type: ResourceType.BookAll });
+
+      await database.delBook(book);
+
+      await refreshBooks();
+    }
+  });
+}
 </script>

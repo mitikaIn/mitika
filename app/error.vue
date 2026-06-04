@@ -35,11 +35,9 @@
 <script setup lang="ts">
 import type { NuxtError } from "#app";
 
-interface Props {
+const { error } = defineProps<{
   error: NuxtError;
-}
-
-const { error } = defineProps<Props>();
+}>();
 
 const title = computed(() =>
   error ? (error.statusMessage ?? error.statusCode.toString()) : "Unknown error",

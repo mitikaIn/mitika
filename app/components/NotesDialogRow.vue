@@ -101,17 +101,17 @@ import { PhPencilSimple, PhTrashSimple, PhCheck, PhX } from "@phosphor-icons/vue
 import { FORMAT_POSITION } from "@/keys";
 import { type Note } from "@/models/object";
 
-const emit = defineEmits<{ change: [name: string, description: string]; open: []; remove: [] }>();
-
-const { note } = defineProps<{ note: Note }>();
-
-const formatPosition = inject(FORMAT_POSITION);
-
 enum State {
   Display,
   Edit,
   Remove,
 }
+
+const formatPosition = inject(FORMAT_POSITION);
+
+const emit = defineEmits<{ change: [name: string, description: string]; open: []; remove: [] }>();
+
+const { note } = defineProps<{ note: Note }>();
 
 const description = ref(note.description);
 const name = ref(note.name);

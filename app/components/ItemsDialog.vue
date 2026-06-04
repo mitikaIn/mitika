@@ -41,10 +41,6 @@ defineProps<{ items: Item[]; openItemIds: Set<string> }>();
 
 const dialog = useTemplateRef("dialog");
 
-function toggle() {
-  dialog.value!.toggle();
-}
-
 function onOpen(item: Item) {
   dialog.value!.hide();
   emit("open", item);
@@ -52,6 +48,10 @@ function onOpen(item: Item) {
 
 function onClose(item: Item) {
   emit("close", item);
+}
+
+function toggle() {
+  dialog.value!.toggle();
 }
 
 defineExpose({ toggle });

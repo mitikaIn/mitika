@@ -16,14 +16,13 @@ import { useDatabase } from "@/database";
 import { type Item, collatePosition } from "@/models/item";
 import { type Mark, newMark } from "@/models/object";
 
+const database = await useDatabase();
+const { t } = useI18n();
+const formatPosition = inject(FORMAT_POSITION);
+
 const emit = defineEmits<{ refresh: [] }>();
 
 const { item, marks } = defineProps<{ item: Item; marks: Mark[] }>();
-
-const formatPosition = inject(FORMAT_POSITION);
-
-const database = await useDatabase();
-const { t } = useI18n();
 
 const mark = computed(() =>
   marks.find((mark) => collatePosition(mark.position, item.position) == 0),

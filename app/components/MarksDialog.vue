@@ -52,25 +52,23 @@ import { useDatabase } from "@/database";
 import { type Item, collatePosition } from "@/models/item";
 import { type Mark } from "@/models/object";
 
+let database = null;
+
 const emit = defineEmits<{ open: [mark: Mark]; refresh: [] }>();
 
 const { marks } = defineProps<{ marks: Mark[] }>();
 
 const search = ref("");
+
 const dialog = useTemplateRef("dialog");
 
 const filteredMarks = computed(() =>
   marks.filter((mark) => mark.name.toLowerCase().includes(search.value.toLowerCase())),
 );
 
-function toggle() {
-  dialog.value!.toggle();
-}
-
 async function onChange(mark: Mark, name: string) {
   mark.name = name;
-  const database = await useDatabase();
-  await database.putObject(toRaw(mark));
+  await database!.putObject(toRaw(mark));
   emit("refresh");
 }
 
@@ -80,10 +78,15 @@ async function onOpen(mark: Mark) {
 }
 
 async function onRemove(mark: Mark) {
-  const database = await useDatabase();
-  await database.delObject(toRaw(mark));
+  await database!.delObject(toRaw(mark));
   emit("refresh");
 }
 
+function toggle() {
+  dialog.value!.toggle();
+}
+
 defineExpose({ toggle });
+
+database = await useDatabase();
 </script>

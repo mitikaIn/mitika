@@ -49,7 +49,7 @@ async function fsaChooseFiles(multiple: boolean, filters: Filter[]): Promise<Loc
 async function fsaReadFile(file: LocalFile): Promise<Blob> {
   if (!((await file.handle.queryPermission({ mode: "read" })) == "granted"))
     if (!((await file.handle.requestPermission({ mode: "read" })) == "granted"))
-      throw Error(`Permission denied to read file: ${file.name}`);
+      throw Error(`permission denied to read file ${file.name}`);
   const blob = await file.handle.getFile();
   return blob;
 }
@@ -116,11 +116,11 @@ export async function chooseFiles(multiple: boolean, filters: Filter[]): Promise
 export async function readFile(file: LocalFile): Promise<Blob> {
   if (file.storageId == FSA_ID) return fsaReadFile(file);
   else if (file.storageId == OPFS_ID) return opfsReadFile(file);
-  else throw new Error(`Unknown storageId: ${file.storageId}`);
+  else throw new Error(`unknown storageId ${file.storageId}`);
 }
 
 export async function dropFile(file: LocalFile) {
   if (file.storageId == FSA_ID) return fsaDropFile(file);
   else if (file.storageId == OPFS_ID) return opfsDropFile(file);
-  else throw new Error(`Unknown storageId: ${file.storageId}`);
+  else throw new Error(`unknown storageId ${file.storageId}`);
 }

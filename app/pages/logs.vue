@@ -1,12 +1,7 @@
 <template>
   <div class="flex flex-col gap-8 p-4">
     <header class="flex flex-row items-center gap-4">
-      <button
-        class="btn btn-ghost"
-        @click="onBackClick"
-      >
-        <BackIcon />
-      </button>
+      <BackButton />
       <TitleBar
         class="grow"
         :title="$t('Logs')"
@@ -124,7 +119,6 @@ import { Constants } from "@/constants";
 import { Level, useLogs } from "@/logging";
 
 const logs = useLogs();
-const router = useRouter();
 
 const domains = ref(new Set(logs.value.map((log) => log.domain).sort()));
 const levels = ref(new Set([Level.Debug, Level.Info, Level.Warn, Level.Error]));
@@ -139,17 +133,13 @@ const filteredLogs = computed(() => {
 
 const reversedLogs = computed(() => filteredLogs.value.reverse());
 
-function onBackClick() {
-  router.back();
-}
-
 function onDownloadClick() {
   const a = document.createElement("a");
   const url = URL.createObjectURL(
     new Blob([JSON.stringify(filteredLogs.value, null, 2)], { type: "application/json" }),
   );
   a.href = url;
-  a.download = `${Constants.NAME}_logs.json`;
+  a.download = `${Constants.NAME}Logs.json`;
   a.click();
 }
 

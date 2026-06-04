@@ -112,13 +112,13 @@ const { item } = defineProps<{
 const editing = ref(false);
 const name = ref(item.name);
 
-function onCancelClick() {
-  name.value = item.name;
+function onSaveClick() {
+  emit("change", name.value);
   editing.value = false;
 }
 
-function onSaveClick() {
-  emit("change", name.value);
+function onCancelClick() {
+  name.value = item.name;
   editing.value = false;
 }
 </script>

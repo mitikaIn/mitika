@@ -62,26 +62,8 @@ let chooseFilesRequest: ChooseFilesRequest | null = null;
 
 const dialog = useTemplateRef("dialog");
 
-async function chooseFiles(multiple: boolean, filters: Filter[]): Promise<File[]> {
-  if (chooseFilesRequest) throw new Error("A chooseFiles request is already pending");
-
-  chooseFilesRequest = { filters, multiple, ...Promise.withResolvers() };
-  dialog.value!.show();
-  return chooseFilesRequest.promise;
-}
-
-async function dropFile(file: File) {
-  if (file.sourceId == local.SOURCE_ID) return local.dropFile(file as local.LocalFile);
-  else throw new Error(`Unknown sourceId: ${file.sourceId}`);
-}
-
-async function readFile(file: File): Promise<Blob> {
-  if (file.sourceId == local.SOURCE_ID) return local.readFile(file as local.LocalFile);
-  else throw new Error(`Unknown sourceId: ${file.sourceId}`);
-}
-
 function onCancel() {
-  if (!chooseFilesRequest) throw new Error("Dialog is active but no chooseFiles request found");
+  if (!chooseFilesRequest) throw new Error("dialog is active but no request found");
 
   chooseFilesRequest.resolve([]);
   chooseFilesRequest = null;
@@ -89,7 +71,7 @@ function onCancel() {
 }
 
 async function onClick(sourceId: string) {
-  if (!chooseFilesRequest) throw new Error("Dialog is active but no chooseFiles request found");
+  if (!chooseFilesRequest) throw new Error("dialog is active but no request found");
 
   if (sourceId == local.SOURCE_ID) {
     try {
@@ -102,11 +84,29 @@ async function onClick(sourceId: string) {
       chooseFilesRequest.reject(error as Error);
     }
   } else {
-    chooseFilesRequest.reject(new Error(`Unknown sourceId: ${sourceId}`));
+    chooseFilesRequest.reject(new Error(`unknown sourceId ${sourceId}`));
   }
 
   chooseFilesRequest = null;
   dialog.value!.hide();
+}
+
+async function chooseFiles(multiple: boolean, filters: Filter[]): Promise<File[]> {
+  if (chooseFilesRequest) throw new Error("a request is already pending");
+
+  chooseFilesRequest = { filters, multiple, ...Promise.withResolvers() };
+  dialog.value!.show();
+  return chooseFilesRequest.promise;
+}
+
+async function dropFile(file: File) {
+  if (file.sourceId == local.SOURCE_ID) return local.dropFile(file as local.LocalFile);
+  else throw new Error(`unknown sourceId ${file.sourceId}`);
+}
+
+async function readFile(file: File): Promise<Blob> {
+  if (file.sourceId == local.SOURCE_ID) return local.readFile(file as local.LocalFile);
+  else throw new Error(`unknown sourceId ${file.sourceId}`);
 }
 
 defineExpose({ chooseFiles, dropFile, readFile });

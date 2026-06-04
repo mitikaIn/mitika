@@ -1,14 +1,7 @@
 <template>
-  <div
-    :class="classes"
-    class="flex flex-col justify-center-safe"
-  ></div>
+  <div :class="classes" />
 </template>
 <script setup lang="ts">
-const { text } = defineProps<{
-  text: string;
-}>();
-
 const COLORS = [
   "from-red-500 to-amber-500",
   "from-orange-500 to-yellow-500",
@@ -36,6 +29,10 @@ const DIRECTIONS = [
   "bg-radial",
 ];
 const PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59];
+
+const { text } = defineProps<{
+  text: string;
+}>();
 
 const seed = computed(() =>
   text.length == 0

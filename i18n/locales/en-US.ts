@@ -10,6 +10,8 @@ export default {
   "50%": "50%",
   "75%": "75%",
   "About {name}": "About {name}",
+  "Edit {name} by {authors}": "Edit {name} by {authors}",
+  "{name} by {authors}": "{name} by {authors}",
   "Add a few books to open them here.": "Add a few books to open them here.",
   "Add a mark to display it here.": "Add a bookmark to display it here.",
   "Add a note to display it here.": "Add a note to display it here.",

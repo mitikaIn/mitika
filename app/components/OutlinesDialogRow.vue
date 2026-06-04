@@ -65,11 +65,11 @@ export interface Outline {
 <script setup lang="ts">
 import { FORMAT_POSITION } from "@/keys";
 
+const formatPosition = inject(FORMAT_POSITION);
+
 defineEmits<{ open: [outline: Outline] }>();
 
 const { outline, search } = defineProps<{ outline: Outline; search: string }>();
-
-const formatPosition = inject(FORMAT_POSITION);
 
 const matches = computed(() => {
   return outline.name.toLowerCase().includes(search.toLowerCase());
