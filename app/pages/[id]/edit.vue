@@ -268,7 +268,7 @@ function onItemMove(item: Item, src: number, dst: number) {
 async function onItemRemove(item: Item) {
   const title = t("Remove {name}?", { name: item.name });
   const message = t(
-    "Removing an item clears its bookmarks, notes etc. However the item's file is not deleted.",
+    "Removing an item clears its marks, notes etc. However the item's file is not deleted.",
   );
   const buttons = [
     { action: "cancel", label: t("Cancel"), type: ButtonType.Normal },

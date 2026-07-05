@@ -173,7 +173,7 @@ async function onEdit(book: Book) {
 async function onRemove(book: Book) {
   const title = t("Remove {name}?", { name: book.name });
   const message = t(
-    "Removing a book clears its bookmarks, notes etc. However the book's files are not deleted.",
+    "Removing a book clears its marks, notes etc. However the book's files are not deleted.",
   );
   const buttons = [
     { action: "cancel", label: t("Cancel"), type: ButtonType.Normal },
