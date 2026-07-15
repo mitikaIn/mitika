@@ -1,4 +1,4 @@
-import type { Request, Response } from "./common";
+import type { Request, Response } from "@/components/Audio/parkhi/common";
 import { useLogging } from "@/logging";
 import { type Metadata } from "@mitikaIn/parkhi";
 import { LogLevel } from "@mitikaIn/parkhi/logging";
@@ -15,7 +15,7 @@ function onLogMessage(level: LogLevel, component: string, message: string) {
   else throw new Error(`unknown log level ${level}`);
 }
 
-export class Client {
+export class Proxy {
   private readyPromise = Promise.withResolvers<null>();
   private donePromise = Promise.withResolvers<Metadata | null>();
 
@@ -43,6 +43,8 @@ export class Client {
     worker.postMessage(request);
 
     const metadata = await this.donePromise.promise;
+
+    worker.terminate();
 
     return metadata;
   }

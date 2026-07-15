@@ -1,4 +1,4 @@
-import type { Request, Response } from "./common";
+import type { Request, Response } from "@/components/Audio/parkhi/common";
 import { type Metadata, Parkhi, ParkhiError } from "@mitikaIn/parkhi";
 import { LogLevel, setLogFunction } from "@mitikaIn/parkhi/logging";
 

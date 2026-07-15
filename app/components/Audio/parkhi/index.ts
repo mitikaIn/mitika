@@ -1,4 +1,4 @@
-import { Client } from "./client";
+import { Proxy } from "@/components/Audio/parkhi/proxy";
 import { type Outline } from "@/components/OutlinesDialogRow.vue";
 import type { Chapter } from "@mitikaIn/parkhi";
 
@@ -20,14 +20,14 @@ function toOutline(chapter: Chapter): Outline {
 }
 
 export async function getMetadata(blob: Blob): Promise<Metadata | null> {
-  const client = new Client();
+  const proxy = new Proxy();
 
   const {
     name = null,
     authors = [],
     cover = null,
     chapters = [],
-  } = (await client.parse(blob)) || {};
+  } = (await proxy.parse(blob)) || {};
   const outlines = chapters.map(toOutline);
   const metadata = { name, authors, cover, outlines };
 
